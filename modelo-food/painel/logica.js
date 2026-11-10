@@ -151,8 +151,9 @@ export const CONSULTAS = {
   privado: (e) => `estabelecimentos_privado?select=situacao_motivo&estabelecimento_id=eq.${e}`,
   horarios: (e) => `horarios?select=dia,abre,fecha&estabelecimento_id=eq.${e}`,
   categorias: (e) => `categorias?select=id,nome,ordem&order=ordem&estabelecimento_id=eq.${e}`,
-  produtos: (e) => 'produtos?select=id,nome,categoria_id,preco,disponivel,ativo,ordem,descricao,imagem,grupos_opcao(id,nome,ordem,opcoes(id,nome,preco,ativo,ordem))'
+  produtos: (e) => 'produtos?select=id,nome,categoria_id,preco,disponivel,ativo,ordem,descricao,imagem,grupos_opcao(id,chave,nome,tipo,obrigatorio,max,ordem,opcoes(id,chave,nome,preco,ativo,ordem))'
     + `&order=ordem&estabelecimento_id=eq.${e}`,
+  equipeDaLoja: (e) => `equipe?select=user_id,nome,papel&estabelecimento_id=eq.${e}&order=criado_em`,
   // só o dono usa (a lista inteira, com os inativos: a RLS mostra para a equipe)
   bairros: (e) => `bairros?select=nome,taxa,ativo&order=nome&estabelecimento_id=eq.${e}`,
 };
@@ -182,6 +183,11 @@ export function idDoNome(nome, existentes = []) {
   if (!usados.has(base)) return base;
   for (let n = 2; ; n++) if (!usados.has(`${base}-${n}`)) return `${base}-${n}`;
 }
+// chave de grupo/opção (até 40 letras, só a-z, 0-9 e hífen), sem repetir as existentes
+export const chaveDoNome = (nome, existentes = []) => {
+  const curta = idDoNome(nome, []).slice(0, 36).replace(/-+$/, '') || 'opcao';
+  return idDoNome(curta, existentes.map(String));
+};
 // caminho da foto nova no Storage: '<loja>/<produto>/<16 letras aleatórias>.<ext>' (a loja vem na frente, no painel) (nome novo a cada troca: o celular
 // do cliente não fica com a foto velha guardada)
 export const caminhoFotoNova = (id, ext, aleatorio = crypto.randomUUID().replace(/-/g, '').slice(0, 16)) => `${id}/${aleatorio}.${ext}`;

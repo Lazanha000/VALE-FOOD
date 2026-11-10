@@ -23,7 +23,7 @@ import { clienteSupabase, guardaLocal, tempoRealPedidos } from './supabase.js';
 import {
   STATUS, EM_ANDAMENTO, PAGAMENTOS, proximoPasso, statusPara, dentroDoHorario, hora, haQuanto,
   telefoneTxt, linkTelefone, linkWhatsappCliente, detalhesItem, paraComanda, consultaPedidos, CONSULTAS,
-  centavosDe, reaisCampo, DIAS, horariosPorDia, faixasParaSalvar, resumoDoDia, idDoNome, caminhoFotoNova, fotoDoStorage,
+  centavosDe, reaisCampo, DIAS, horariosPorDia, faixasParaSalvar, resumoDoDia, idDoNome, chaveDoNome, caminhoFotoNova, fotoDoStorage,
 } from './logica.js';
 import { prepararFoto } from './fotos.js';
 import { fotoDoBanco, idLojaValido } from '../js/services/cardapio.js';
@@ -307,7 +307,7 @@ async function iniciarPainel() {
       <div id="pn-cardapio"><p class="pn-dica">Carregando cardápio…</p></div>
     </section>` : ''}
     ${temLoja && dono ? `<section id="pn-aba-loja" role="tabpanel" aria-labelledby="tab-loja" hidden>
-      <div class="pn-ajustes"><div id="pn-dados"><p class="pn-dica">Carregando…</p></div><div id="pn-horarios"></div><div id="pn-entrega"></div></div>
+      <div class="pn-ajustes"><div id="pn-dados"><p class="pn-dica">Carregando…</p></div><div id="pn-horarios"></div><div id="pn-entrega"></div><div id="pn-equipe"></div></div>
     </section>` : ''}
     ${estado.admin ? `<section id="pn-aba-admin" role="tabpanel" aria-labelledby="tab-admin"${temLoja ? ' hidden' : ''}><div id="pn-admin"></div></section>` : ''}`;
   $('#pn-trocar')?.addEventListener('change', (ev) => trocarDeLoja(ev.target.value));
@@ -642,15 +642,95 @@ const campoPreco = (tipo, id, preco, rotulo) => `<span class="pn-preco-campo"><s
   <input type="text" inputmode="decimal" autocomplete="off" maxlength="10" value="${reaisCampo(preco)}" aria-label="${esc(rotulo)}"
   data-preco="${tipo}" data-id="${esc(String(id))}" data-valor="${preco}"${estado.ocupado.has(`${tipo}:${id}`) ? ' disabled' : ''}></span>`;
 
+// opções do produto (só o dono): grupos (Tamanho, Adicionais...) e as opções de cada um, com preço a mais
 function opcoesDoProduto(p) {
-  const grupos = (p.grupos_opcao || []).filter((g) => (g.opcoes || []).length).sort(ordem);
-  if (!grupos.length) return '';
+  const grupos = [...(p.grupos_opcao || [])].sort(ordem);
   const aberto = estado.abertos.has(p.id) ? ' open' : '';
-  return `<li class="pn-opcoes"><details data-opcoes="${esc(p.id)}"${aberto}><summary>Preços das opções de ${esc(p.nome)}</summary>
-    ${grupos.map((g) => `<p class="pn-grupo">${esc(g.nome)}</p><ul>${[...g.opcoes].sort(ordem).map((o) => `
-      <li class="pn-prod pn-opcao"><span class="pn-prod-nome">${esc(o.nome)}${o.ativo ? '' : ' <small>(desativada)</small>'}</span>
-        ${campoPreco('opcao', o.id, o.preco, `Preço a mais de ${o.nome} (${g.nome}, ${p.nome})`)}</li>`).join('')}</ul>`).join('')}
+  const regra = (g) => (g.tipo === 'unica' ? 'escolhe 1' : g.max ? `escolhe até ${g.max}` : 'escolhe várias') + (g.obrigatorio ? ', obrigatório' : ', opcional');
+  return `<li class="pn-opcoes"><details data-opcoes="${esc(p.id)}"${aberto}><summary>Opções de ${esc(p.nome)}: ${grupos.length ? grupos.map((g) => esc(g.nome)).join(', ') : 'nenhuma'}</summary>
+    ${grupos.map((g) => {
+      const ops = [...(g.opcoes || [])].sort(ordem);
+      return `<div class="pn-grupo-box">
+      <p class="pn-grupo">${esc(g.nome)} <small>(${regra(g)})</small>
+        <button type="button" class="link link--perigo" data-apagar-grupo="${g.id}" data-nome="${esc(g.nome)}">Apagar grupo</button></p>
+      ${g.obrigatorio && !ops.some((o) => o.ativo) ? '<p class="aviso aviso--erro">Grupo obrigatório sem opção: ninguém consegue pedir este produto. Adicione as opções abaixo.</p>' : ''}
+      <ul>${ops.map((o) => `<li class="pn-prod pn-opcao"><span class="pn-prod-nome">${esc(o.nome)}${o.ativo ? '' : ' <small>(desativada)</small>'}</span>
+        ${campoPreco('opcao', o.id, o.preco, `Preço a mais de ${o.nome} (${g.nome}, ${p.nome})`)}
+        <button type="button" class="link link--perigo" data-apagar-opcao="${o.id}" data-nome="${esc(o.nome)}">Apagar</button></li>`).join('')}</ul>
+      <form class="pn-form-linha" data-nova-opcao="${g.id}" data-produto="${esc(p.id)}" novalidate>
+        <input name="nome" type="text" maxlength="60" autocomplete="off" placeholder="${g.tipo === 'unica' ? 'Ex.: Grande' : 'Ex.: Bacon'}" aria-label="Nova opção em ${esc(g.nome)}">
+        <span class="pn-preco-campo"><span aria-hidden="true">+ R$</span><input name="preco" type="text" inputmode="decimal" maxlength="10" placeholder="0,00" autocomplete="off" aria-label="Preço a mais da nova opção"></span>
+        <button type="submit" class="btn btn-sec">Adicionar opção</button>
+      </form></div>`;
+    }).join('')}
+    <form class="pn-form-linha pn-novo-grupo" data-novo-grupo="${esc(p.id)}" novalidate>
+      <input name="nome" type="text" maxlength="40" autocomplete="off" placeholder="Novo grupo (ex.: Adicionais, Tamanho)" aria-label="Nome do novo grupo de opções de ${esc(p.nome)}">
+      <select name="tipo" aria-label="Quantas o cliente escolhe"><option value="multipla">Cliente escolhe várias</option><option value="unica">Cliente escolhe só uma</option></select>
+      <label class="check"><input type="checkbox" name="obrigatorio"> Obrigatório</label>
+      <button type="submit" class="btn btn-sec">Criar grupo</button>
+    </form>
+    <p class="pn-dica">Exemplos: "Tamanho" (escolhe só uma, obrigatório) ou "Adicionais" (escolhe várias, opcional). O preço da opção soma ao do produto.</p>
   </details></li>`;
+}
+
+async function criarGrupo(form) {
+  const p = estado.produtos.find((x) => x.id === form.dataset.novoGrupo);
+  const nome = form.elements.nome.value.trim();
+  if (!p) return;
+  if (!nome) { avisar('Digite o nome do grupo.', 'erro'); form.elements.nome.focus(); return; }
+  await gravarOpcao(form, () => cliente.rest('grupos_opcao', { method: 'POST', headers: { Prefer: 'return=representation' }, body: {
+    estabelecimento_id: estado.estab, produto_id: p.id, chave: chaveDoNome(nome, (p.grupos_opcao || []).map((g) => g.chave)), nome,
+    tipo: form.elements.tipo.value, obrigatorio: form.elements.obrigatorio.checked,
+    ordem: Math.max(0, ...(p.grupos_opcao || []).map((g) => g.ordem ?? 0)) + 1 } }), p.id, `Grupo ${nome} criado. Agora adicione as opções.`);
+}
+
+async function criarOpcao(form) {
+  const p = estado.produtos.find((x) => x.id === form.dataset.produto);
+  const g = p?.grupos_opcao?.find((x) => String(x.id) === form.dataset.novaOpcao);
+  const nome = form.elements.nome.value.trim();
+  const preco = form.elements.preco.value.trim() ? centavosDe(form.elements.preco.value) : 0;
+  if (!g) return;
+  if (!nome) { avisar('Digite o nome da opção.', 'erro'); form.elements.nome.focus(); return; }
+  if (preco === null) { avisar('Confira o preço (ex.: 4,00). Deixe vazio se não cobra a mais.', 'erro'); return; }
+  await gravarOpcao(form, () => cliente.rest('opcoes', { method: 'POST', headers: { Prefer: 'return=representation' }, body: {
+    estabelecimento_id: estado.estab, grupo_id: g.id, chave: chaveDoNome(nome, (g.opcoes || []).map((o) => o.chave)), nome, preco,
+    ordem: Math.max(0, ...(g.opcoes || []).map((o) => o.ordem ?? 0)) + 1 } }), p.id, `${nome} adicionado em ${g.nome}.`);
+}
+
+async function apagarOpcao(botao) {
+  const grupo = botao.dataset.apagarGrupo;
+  const tabela = grupo ? 'grupos_opcao' : 'opcoes';
+  const id = Number(grupo || botao.dataset.apagarOpcao);
+  const nome = botao.dataset.nome;
+  if (!confirm(grupo ? `Apagar o grupo ${nome} e todas as opções dele?` : `Apagar a opção ${nome}?`)) return;
+  const produto = botao.closest('[data-opcoes]')?.dataset.opcoes;
+  botao.disabled = true;
+  try {
+    const r = await cliente.rest(`${tabela}?id=eq.${id}&estabelecimento_id=eq.${estado.estab}`, { method: 'DELETE', headers: { Prefer: 'return=representation' } });
+    if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para apagar. Só o dono pode.');
+    if (produto) estado.abertos.add(produto);
+    await carregarCardapio();
+    avisar(`${nome} apagado.`);
+  } catch (e) {
+    botao.disabled = false;
+    if (e.status !== 401) avisar(e.message || 'Não deu para apagar.', 'erro');
+  }
+}
+
+// grava (grupo ou opção), mantém o quadro do produto aberto e redesenha
+async function gravarOpcao(form, gravar, produtoId, mensagem) {
+  const botao = $('button[type=submit]', form);
+  botao.disabled = true;
+  try {
+    const r = await gravar();
+    if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para mudar o cardápio. Só o dono pode.');
+    estado.abertos.add(produtoId);
+    await carregarCardapio();
+    avisar(mensagem);
+  } catch (e) {
+    botao.disabled = false;
+    if (e.status !== 401) avisar(e.message || 'Não deu para salvar.', 'erro');
+  }
 }
 
 // ---------- produto: criar, editar nome/descrição/categoria, foto, tirar do cardápio (só o dono) ----------
@@ -994,6 +1074,76 @@ async function salvarDados(form) {
   }
 }
 
+// ---------- equipe da loja (só o dono) ----------
+async function carregarEquipe() {
+  const n = $('#pn-equipe');
+  if (!n) return;
+  try {
+    estado.equipe = await cliente.rest(CONSULTAS.equipeDaLoja(estado.estab));
+  } catch (e) {
+    if (e.status !== 401) n.innerHTML = `<p class="aviso aviso--erro">Não deu para ler a equipe: ${esc(e.message)}</p>`;
+    return;
+  }
+  mostrarEquipe();
+}
+
+function mostrarEquipe() {
+  const n = $('#pn-equipe');
+  if (!n) return;
+  const eu = cliente.usuario()?.id;
+  const PAPEIS = { dono: 'Dono (tudo)', cozinha: 'Cozinha (pedidos e esgotado)' };
+  n.innerHTML = `<form class="pn-cartao pn-form" id="pn-form-equipe" novalidate>
+    <h2>Equipe</h2>
+    <p class="pn-dica">Quem entra no painel desta loja. A cozinha vê os pedidos, muda o andamento e marca esgotado; não mexe em preço, Pix nem horários.</p>
+    <ul class="pn-equipe">${(estado.equipe || []).map((m) => `<li><span><b>${esc(m.nome || 'Sem nome')}</b> · ${PAPEIS[m.papel] || esc(m.papel)}${m.user_id === eu ? ' · você' : ''}</span>
+      ${m.user_id !== eu ? `<button type="button" class="link link--perigo" data-tirar-equipe="${esc(m.user_id)}" data-nome="${esc(m.nome || 'esta pessoa')}">Tirar da equipe</button>` : ''}</li>`).join('')}</ul>
+    <fieldset class="pn-bloco"><legend>Pôr alguém na equipe</legend>
+      <p class="pn-dica">Antes, a pessoa cria uma conta neste painel (em "Criar conta"). Depois você digita o e-mail dela aqui.</p>
+      <div class="linha-campos">
+        ${campoTexto('eq_email', 'E-mail da conta', '', { max: 120 })}
+        ${campoTexto('eq_nome', 'Nome', '', { max: 80 })}
+      </div>
+      <div class="campo"><label for="pn-eq_papel">Papel</label><select id="pn-eq_papel" name="eq_papel">
+        <option value="cozinha">Cozinha</option><option value="dono">Dono (pode tudo, inclusive preços e Pix)</option></select></div>
+    </fieldset>
+    <p class="aviso aviso--erro" data-erro role="alert" hidden></p>
+    <button type="submit" class="btn btn-primario"><span class="btn-txt">Pôr na equipe</span></button>
+  </form>`;
+}
+
+async function porNaEquipe(form) {
+  const erro = $('[data-erro]', form);
+  const falhar = (m) => { erro.textContent = m; erro.hidden = false; };
+  const email = form.elements.eq_email.value.trim();
+  const nome = form.elements.eq_nome.value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return falhar('Digite o e-mail da conta da pessoa.');
+  if (nome.length < 2) return falhar('Digite o nome da pessoa.');
+  erro.hidden = true;
+  const botao = $('button[type=submit]', form);
+  botao.disabled = true;
+  try {
+    await cliente.rest('rpc/adicionar_equipe', { method: 'POST', body: { estabelecimento: estado.estab, email, papel: form.elements.eq_papel.value, nome } });
+    await carregarEquipe();
+    avisar(`${nome} agora faz parte da equipe.`);
+  } catch (e) {
+    botao.disabled = false;
+    if (e.status !== 401) falhar(e.message || 'Não deu para salvar.');
+  }
+}
+
+async function tirarDaEquipe(botao) {
+  if (!confirm(`Tirar ${botao.dataset.nome} da equipe? A pessoa perde o acesso ao painel desta loja.`)) return;
+  botao.disabled = true;
+  try {
+    await cliente.rest('rpc/remover_equipe', { method: 'POST', body: { estabelecimento: estado.estab, usuario: botao.dataset.tirarEquipe } });
+    await carregarEquipe();
+    avisar('Pessoa tirada da equipe.');
+  } catch (e) {
+    botao.disabled = false;
+    if (e.status !== 401) avisar(e.message || 'Não deu para tirar.', 'erro');
+  }
+}
+
 // formulário de entrega: valores do banco em centavos, na tela em reais
 const entregaDoBanco = () => {
   const l = estado.loja || {};
@@ -1121,6 +1271,7 @@ function trocarAba(aba) {
     mostrarDados();
     mostrarHorarios();
     mostrarEntrega();
+    carregarEquipe();
     carregarLoja().then(() => {
       // releu do banco: redesenha só se ninguém começou a mexer ainda
       if (!$('#pn-aba-loja')?.contains(document.activeElement)) { mostrarDados(); mostrarHorarios(); mostrarEntrega(); }
@@ -1144,7 +1295,9 @@ main.addEventListener('click', (ev) => {
   else if (alvo.dataset.loja) mudarLoja(alvo.dataset.loja === 'abrir');
   else if (alvo.hasAttribute('data-mais-faixa') || alvo.dataset.tirarFaixa) mexerFaixa(alvo);
   else if (alvo.hasAttribute('data-mais-bairro') || alvo.dataset.tirarBairro) mexerBairro(alvo);
-  else if (alvo.dataset.produto) mudarProduto(alvo.dataset.produto);
+  else if (alvo.dataset.apagarGrupo || alvo.dataset.apagarOpcao) apagarOpcao(alvo);
+  else if (alvo.dataset.tirarEquipe) tirarDaEquipe(alvo);
+  else if (alvo.dataset.produto && alvo.matches('.pn-chave')) mudarProduto(alvo.dataset.produto);
   else if (alvo.hasAttribute('data-novo-produto') || alvo.hasAttribute('data-cancelar-produto')) {
     estado.criando = alvo.hasAttribute('data-novo-produto');
     mostrarCardapio();
@@ -1194,6 +1347,9 @@ main.addEventListener('submit', (ev) => {
   if (ev.target.id === 'pn-form-entrega') { ev.preventDefault(); salvarEntrega(ev.target); }
   if (ev.target.id === 'pn-form-dados') { ev.preventDefault(); salvarDados(ev.target); }
   if (ev.target.id === 'pn-form-categoria') { ev.preventDefault(); criarCategoria(ev.target); }
+  if (ev.target.id === 'pn-form-equipe') { ev.preventDefault(); porNaEquipe(ev.target); }
+  if (ev.target.matches('[data-novo-grupo]')) { ev.preventDefault(); criarGrupo(ev.target); }
+  if (ev.target.matches('[data-nova-opcao]')) { ev.preventDefault(); criarOpcao(ev.target); }
 });
 
 // Enter no campo de preço salva (o "change" vem junto) sem enviar formulário nenhum

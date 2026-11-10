@@ -91,6 +91,8 @@ export function telaCadastroLoja(main, { cliente, aoTerminar }) {
   main.innerHTML = `<form class="pn-cartao pn-form" id="pn-form-loja" novalidate>
     <h1>Cadastrar estabelecimento</h1>
     <p class="pn-dica">Preencha os dados abaixo. Nossa equipe confere e aprova; enquanto isso você já pode montar o cardápio.</p>
+    <div class="aviso"><p><b>Trabalha numa loja que já está aqui?</b> Não preencha. Peça ao dono para pôr o e-mail <b>${esc(email)}</b> na equipe e depois toque em:</p>
+      <button type="button" class="btn btn-sec" data-ja-incluido>Já fui incluído: abrir o painel</button></div>
     <fieldset class="pn-bloco"><legend>Estabelecimento</legend>
       ${campo('nome', 'Nome do estabelecimento', { max: 60 })}
       <div class="linha-campos">
@@ -130,6 +132,7 @@ export function telaCadastroLoja(main, { cliente, aoTerminar }) {
   </form>`;
   const form = $('#pn-form-loja');
   const erro = erroDo(form);
+  $('[data-ja-incluido]', form).addEventListener('click', () => aoTerminar());
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const v = (k) => form.elements[k].value.trim();

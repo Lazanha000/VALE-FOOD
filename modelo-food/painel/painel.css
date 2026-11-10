@@ -222,3 +222,11 @@ html[data-tema="escuro"] .pn-chave[aria-checked="true"] { background: #173B27; c
 /* 4 abas (com Administração) e tabelas largas não podem alargar a página no celular */
 .pn-abas { overflow-x: auto; max-width: 100%; }
 .pn-tabela { display: block; overflow-x: auto; max-width: 100%; }
+/* opções do produto e equipe */
+.pn-grupo-box { border-top: 1px dashed var(--linha, #ddd); padding-top: 8px; margin-top: 8px; }
+.pn-grupo-box .pn-grupo { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.pn-form-linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.pn-form-linha > input[type=text] { flex: 1 1 180px; min-width: 0; }
+.pn-novo-grupo { border-top: 1px solid var(--linha, #ddd); padding-top: 10px; }
+.pn-equipe { list-style: none; padding: 0; margin: 8px 0; }
+.pn-equipe li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--linha, #ddd); }
