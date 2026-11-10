@@ -71,7 +71,7 @@ const base = (o) => ({
 export const ESTABS = [
   base({
     id: 'ze', nome: 'Lanchonete do Zé', nomeCurto: 'LANCHONETE', sufixo: 'DO ZÉ', cat: 'lanchonetes', cidade: 'Araçuaí',
-    nota: 4.8, avaliacoes: 42, descricao: 'Hambúrguer feito na hora, entregue na caixa da casa.', cinema: true,
+    nota: 4.8, avaliacoes: 42, descricao: 'Hambúrguer feito na hora, entregue na caixa da casa.',
     entrega: { ativo: true, tempo: '30 min', pedidoMinimo: 1500, taxa: { tipo: 'fixa', valor: 500 } },
     retirada: { ativo: true, tempo: '20 min', pedidoMinimo: 0, local: 'Rua das Flores, 120, Centro, Araçuaí' },
     horario: SEMANA([['07:00', '23:59']]), whatsapp: null,

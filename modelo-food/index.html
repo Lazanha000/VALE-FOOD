@@ -23,7 +23,7 @@
      Cada item é nome:px:w (largura da foto e medida w de CINE_LAYERS): o preload escolhe entre a
      foto "-m" e a inteira com a mesma conta de camadaSrcset (js/art.js), para não baixar duas vezes.
      Trocou as camadas? Atualize a lista aqui e rode node conferir-modelo.mjs (hash da CSP). -->
-<script>try{var t=localStorage.getItem("modelo:tema:v1");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"escuro":"claro";if(t==="escuro"){document.documentElement.dataset.tema="escuro";document.querySelector('meta[name=theme-color]').content="#17130F"}}catch(e){}try{var h=location.hash.replace(/^#\/?/,"").split("?")[0];if(h==="loja")"paoTopo:826:361.9 picles:678:297 cebola:793:347.4 bacon:904:396.1 queijo:822:360.1 carne:773:338.7 salada:888:389 paoBase:740:324.2".split(" ").forEach(function(c){var p=c.split(":"),f="assets/cena/camadas/"+p[0],l=document.createElement("link");l.rel="preload";l.as="image";l.type="image/webp";l.fetchPriority="high";l.href=f+".webp";l.imageSrcset=f+"-m.webp "+Math.round(p[1]*.65)+"w, "+f+".webp "+p[1]+"w";l.imageSizes="(max-width: 759px) "+Math.ceil(76*p[2]/400)+"vw, "+Math.ceil(35*p[2]/400)+"vw";document.head.appendChild(l)})}catch(e){}</script>
+<script>try{var t=localStorage.getItem("modelo:tema:v1");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"escuro":"claro";if(t==="escuro"){document.documentElement.dataset.tema="escuro";document.querySelector('meta[name=theme-color]').content="#17130F"}}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
