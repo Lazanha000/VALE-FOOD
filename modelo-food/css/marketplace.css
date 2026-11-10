@@ -1,0 +1,67 @@
+/* ============================================================
+   MODELO FOOD — camada de vários estabelecimentos
+   Usa as variáveis e fontes do site antigo (css/styles.css), então
+   acompanha o tema claro/escuro e o mesmo visual.
+   ============================================================ */
+
+.mk-aviso-proto{background:var(--aviso-bg);color:var(--aviso-tx);font-size:13px;text-align:center;padding:6px 12px}
+.mk{padding:calc(var(--topo-h) + 18px) 0 64px}
+.mk .wrap{max-width:980px;margin:0 auto;padding:0 var(--g-dir) 0 var(--g-esq)}
+.mk h1{font:800 clamp(30px,6vw,44px)/1 var(--f-display);text-transform:uppercase;margin:4px 0 14px;letter-spacing:.01em}
+.mk h2{font:800 22px/1.1 var(--f-display);text-transform:uppercase;margin:26px 0 10px}
+.mk h3{font:700 16px/1.25 var(--f-texto);margin:0 0 4px}
+.mk .olho{font:600 12px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--brasa-escura);margin:0}
+.mk-muted{color:var(--fumaca);font-size:14px}
+.mk-card{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);padding:14px 16px;margin:0 0 12px}
+.mk-grade{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.mk-cat{display:block;text-align:center;padding:20px 10px;color:inherit;text-decoration:none;cursor:pointer;border:1px solid var(--linha);background:var(--papel);border-radius:var(--raio);font:inherit}
+.mk-cat:hover{border-color:var(--brasa)}
+.mk-cat .ic{display:block;font-size:34px;margin-bottom:6px}
+.mk-cat b{font:700 15px/1.2 var(--f-texto)}
+.mk-cat.soon{opacity:.55;cursor:default}
+.mk-cat.soon:hover{border-color:var(--linha)}
+.mk-linha{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mk-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mk-tag{display:inline-block;font:600 11px/1 var(--f-mono);padding:4px 8px;border-radius:20px;background:#e3f4ea;color:var(--ok);text-transform:uppercase}
+.mk-tag.x{background:var(--aviso-erro-bg);color:var(--erro)}
+.mk-tag.w{background:var(--aviso-bg);color:var(--aviso-tx)}
+.mk-dev{background:var(--aviso-bg);color:var(--aviso-tx);border:1px dashed var(--dourado);border-radius:12px;padding:9px 12px;font-size:13px;margin:12px 0}
+.mk-privado{background:#e3f4ea;color:var(--ok);border:1px solid #b9e0c9;border-radius:12px;padding:9px 12px;font-size:13px;margin:12px 0}
+.mk label.mk-l{display:block;font-weight:600;font-size:13px;margin:12px 0 4px}
+.mk input[type=text],.mk input[type=tel],.mk input[type=email],.mk input[type=password],.mk input[type=number],.mk select,.mk textarea{width:100%;padding:11px 12px;border:1px solid var(--borda-in);border-radius:10px;font:inherit;background:var(--branco);color:var(--tinta)}
+.mk .mk-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin:8px 0;font-weight:400}
+.mk .mk-chk input{margin-top:3px;width:18px;height:18px}
+.mk-passos{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;padding:0;list-style:none}
+.mk-passos li,.mk-passos a{font:600 12px/1 var(--f-mono);padding:7px 10px;border-radius:20px;background:var(--balcao);color:var(--fumaca);text-decoration:none}
+.mk-passos .on{background:var(--brasa);color:#fff}
+.mk-kpi{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:6px}
+.mk-kpi .mk-card b{display:block;font:800 26px/1.1 var(--f-display)}
+.mk-cols{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.mk-col{background:var(--balcao);border-radius:var(--raio);padding:8px}
+.mk-col h3{padding:4px 6px}
+.mk-ord{background:var(--branco);border:1px solid var(--linha);border-radius:12px;padding:10px;margin-bottom:8px;font-size:13px}
+.mk-tabela{width:100%;border-collapse:collapse;font-size:13px}
+.mk-tabela th,.mk-tabela td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--linha)}
+.mk-tabela th{color:var(--fumaca);font-weight:600}
+.mk-barra{height:10px;background:var(--brasa);border-radius:6px}
+.mk-sw{position:relative;width:42px;height:24px;display:inline-block;flex:none}
+.mk-sw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.mk-sw i{position:absolute;inset:0;background:var(--borda);border-radius:24px}
+.mk-sw i:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .15s}
+.mk-sw input:checked+i{background:var(--ok)}
+.mk-sw input:checked+i:before{left:21px}
+.mk-estrelas{display:flex;gap:2px;align-items:center}
+.mk-estrelas button{background:none;border:0;font-size:36px;line-height:1;cursor:pointer;color:var(--borda);padding:2px 4px}
+.mk-estrelas button.on{color:#f5b301}
+.mk-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.mk-modal .caixa{background:var(--branco);color:var(--tinta);border-radius:18px;padding:22px;max-width:420px;width:100%}
+.mk-est-nome{font:800 20px/1.1 var(--f-display);text-transform:uppercase}
+.mk-est-meta{color:var(--fumaca);font-size:13px}
+.mk-lojabar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);padding:10px 14px;margin:0 0 14px}
+.rodape-grade nav a.mk-sep{margin-top:10px}
+@media (max-width:520px){.mk h1{font-size:30px}}
+
+/* o botão flutuante do WhatsApp é de demonstração; fica oculto no protótipo */
+#wa{display:none}
+
+.topo .marca-nome b{display:inline}

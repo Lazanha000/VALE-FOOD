@@ -1,0 +1,49 @@
+# Backup diário dos bancos Supabase dos clientes (GitHub Actions, grátis).
+# USE NUM REPOSITÓRIO PRIVADO (ex.: lazanha000/backups-clientes), nunca no do site:
+# o backup tem nome, telefone e endereço dos clientes do restaurante.
+# Copie este arquivo para .github/workflows/backup-diario.yml do repositório privado.
+#
+# Segredos (Settings > Secrets and variables > Actions > New repository secret):
+#   SENHA_BACKUP      senha longa só sua: o arquivo sai criptografado com ela
+#   DB_<CLIENTE>      "connection string" do Supabase de cada cliente
+#                     (Supabase > Connect > Session pooler > URI, com a senha do banco no lugar de [YOUR-PASSWORD])
+# Para cada cliente novo: crie o segredo DB_<CLIENTE> e acrescente uma linha em "matrix.cliente" e em "env".
+
+name: backup-diario
+on:
+  schedule:
+    - cron: '17 6 * * *'   # todo dia às 03:17 de Brasília (06:17 UTC), com a loja fechada
+  workflow_dispatch: {}     # botão "Run workflow" para testar na hora
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false      # um cliente com problema não impede o backup dos outros
+      matrix:
+        cliente: [MODELO]   # ex.: [JEYJEY, PIZZARIA_X, ...] (igual ao nome do segredo, sem "DB_")
+    steps:
+      - name: Instala o pg_dump 17 (mesma versão do Supabase)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Copia o banco (só as tabelas do site) e criptografa
+        env:
+          DB_MODELO: ${{ secrets.DB_MODELO }}
+          SENHA: ${{ secrets.SENHA_BACKUP }}
+        run: |
+          set -euo pipefail
+          URL_VAR="DB_${{ matrix.cliente }}"
+          ARQ="${{ matrix.cliente }}-$(date -u +%F).sql.gz.gpg"
+          /usr/lib/postgresql/17/bin/pg_dump "${!URL_VAR}" --schema=public --no-owner --no-privileges \
+            | gzip -9 | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$SENHA" -o "$ARQ"
+          test -s "$ARQ"
+          echo "ARQ=$ARQ" >> "$GITHUB_ENV"
+      - name: Guarda por 30 dias
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARQ }}
+          path: ${{ env.ARQ }}
+          retention-days: 30
