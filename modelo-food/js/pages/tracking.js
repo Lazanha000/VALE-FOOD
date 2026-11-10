@@ -65,6 +65,7 @@ function cartaoStatus(p) {
       <p class="status-hora">Feito às ${hora(p.criadoEm)}</p>
     </header>
     ${p.demonstracao ? '<p class="selo-demo">Status simulado para demonstração</p>' : ''}
+    ${p.estabelecimento?.nome ? `<p class="status-pag"><b>${esc(p.estabelecimento.nome)}</b>${/^[0-9]{10,11}$/.test(p.estabelecimento.telefone || '') ? ` · <a class="link" href="tel:+55${p.estabelecimento.telefone}">Ligar para o estabelecimento</a>` : ''}</p>` : ''}
     ${semAcompanhamento(p) ? '<p class="aviso">O restaurante confirma o pedido e o prazo pelo WhatsApp. Este site não acompanha o preparo.</p>'
       : cancelado ? '<p class="aviso aviso--erro"><strong>Pedido cancelado.</strong> Em caso de dúvida, fale com a loja pelo WhatsApp.</p>' : `<ol class="etapas">
       ${etapas.map((e, i) => `<li class="etapa ${i < idx ? 'is-feita' : i === idx ? 'is-atual' : ''}" ${i === idx ? 'aria-current="step"' : ''}>
@@ -82,7 +83,7 @@ function cartaoStatus(p) {
       ${semAcompanhamento(p) ? '' : '<button type="button" class="btn btn-sec" data-atualizar>Atualizar status</button>'}
       ${semAcompanhamento(p) || terminou(p) ? '' : '<p class="campo-dica status-auto">Esta tela se atualiza sozinha enquanto estiver aberta.</p>'}
       ${p.itens?.length ? '<button type="button" class="btn btn-sec" data-imprimir>Imprimir comanda</button>' : ''}
-      ${p.status === 'entregue' ? `<button type="button" class="btn btn-primario" data-avaliar="${esc(p.codigo)}">Avaliar pedido</button>` : ''}
+      ${p.status === 'entregue' && !p.avaliado ? `<button type="button" class="btn btn-primario" data-avaliar="${esc(p.codigo)}">Avaliar pedido</button>` : ''}
       <a class="btn btn-sec" href="#suporte">Preciso de ajuda</a>
       ${p.demonstracao && p.status !== 'entregue' ? `<button type="button" class="btn btn-sec" data-simular-entrega="${esc(p.codigo)}">Simular entrega (protótipo)</button>` : ''}
     </div>

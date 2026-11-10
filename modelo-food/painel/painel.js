@@ -1,7 +1,8 @@
 // ============================================================
-// PAINEL DO RESTAURANTE (admin.html)
+// PAINEL (admin.html): estabelecimentos e administração da plataforma
 //
-// Login da equipe (Supabase Auth, e-mail e senha) e, depois de entrar:
+// Login (Supabase Auth, e-mail e senha). Quem não tem loja cadastra a sua (painel/plataforma.js).
+// Equipe de um estabelecimento, depois de entrar:
 //   * pedidos chegando em tempo real, com som e destaque para os novos;
 //   * mudar o andamento (status) e a situação do pagamento;
 //   * marcar item esgotado / disponível;
@@ -11,7 +12,7 @@
 // Tudo é gravado no banco, com o token de quem entrou: o que cada um pode
 // fazer é decidido pela RLS (supabase/schema.sql), não por este arquivo
 // (esconder a aba "Loja" da cozinha é só para não confundir).
-// Quem entra: usuários cadastrados na tabela "equipe" (supabase/LEIAME.md, passo 5).
+// Quem é da tabela "admins" vê também a aba Administração e pode abrir qualquer loja.
 // ============================================================
 
 import { CONFIG } from '../js/config.js';
@@ -25,16 +26,19 @@ import {
   centavosDe, reaisCampo, DIAS, horariosPorDia, faixasParaSalvar, resumoDoDia, idDoNome, caminhoFotoNova, fotoDoStorage,
 } from './logica.js';
 import { prepararFoto } from './fotos.js';
-import { fotoDoBanco } from '../js/services/cardapio.js';
+import { fotoDoBanco, idLojaValido } from '../js/services/cardapio.js';
+import { validarPix } from '../js/pix.js';
+import { telaCadastroLoja, telaCriarConta, montarAdmin, linkDaLoja, voltouDaConfirmacao } from './plataforma.js';
 
 const $ = (s, raiz = document) => raiz.querySelector(s);
 const main = $('#pn-conteudo');
 const acoesTopo = $('#pn-acoes');
-const nomeLoja = CONFIG.marca?.nome || 'Restaurante';
-const TITULO = `Painel · ${nomeLoja}`;
+let nomeLoja = 'Estabelecimento';
+const tituloBase = () => `Painel · ${nomeLoja}`;
+const CHAVE_LOJA_PAINEL = chaveLocal('painel-loja');
 
-$('[data-marca]').textContent = nomeLoja;
-document.title = TITULO;
+$('[data-marca]').textContent = 'Painel';
+document.title = 'Painel';
 
 // mesmo tema escolhido no site (claro/escuro)
 try {
@@ -158,6 +162,10 @@ const estado = {
   produtos: [],
   bairros: [],
   papel: 'cozinha',
+  estab: null,           // id do estabelecimento aberto no painel
+  estabs: [],            // { id, nome, situacao, papel } que a pessoa pode abrir
+  admin: false,
+  motivo: '',            // motivo de recusa/suspensão (para o dono)
   abertos: new Set(),    // "Opções de ..." e "Editar ..." abertos no cardápio (sobrevive ao redesenho)
   criando: false,        // formulário "Produto novo" aberto
   conexao: 'conectando',
@@ -184,8 +192,10 @@ function encerrar() {
   estado.novos.clear();
   estado.papel = 'cozinha';
   estado.aba = 'pedidos';
+  estado.estab = null;
+  estado.admin = false;
   acoesTopo.hidden = true;
-  document.title = TITULO;
+  document.title = 'Painel';
   telaLogin(motivoSaida || 'Sua sessão terminou. Entre de novo.');
   motivoSaida = '';
 }
@@ -195,8 +205,8 @@ function encerrar() {
 // ============================================================
 function telaLogin(mensagem = '') {
   main.innerHTML = `<section class="pn-cartao pn-login">
-    <h1>Painel do restaurante</h1>
-    <p class="pn-dica">Entre com o e-mail e a senha que o dono cadastrou para você.</p>
+    <h1>Entrar no painel</h1>
+    <p class="pn-dica">Para estabelecimentos e para a equipe da plataforma.</p>
     <form id="pn-form-login" novalidate>
       <div class="campo"><label for="pn-email">E-mail</label>
         <input id="pn-email" type="email" autocomplete="username" required maxlength="120" inputmode="email"></div>
@@ -205,7 +215,10 @@ function telaLogin(mensagem = '') {
       <p class="aviso aviso--erro pn-login-erro" id="pn-login-erro" role="alert" ${mensagem ? '' : 'hidden'}>${esc(mensagem)}</p>
       <button class="btn btn-primario btn-largo" type="submit"><span class="btn-txt">Entrar</span></button>
     </form>
+    <p class="pn-dica">Ainda não tem conta? <button type="button" class="link" data-criar-conta>Criar conta para cadastrar meu estabelecimento</button></p>
+    <p><a class="link" href="./">Voltar para o site</a></p>
   </section>`;
+  $('[data-criar-conta]').addEventListener('click', () => telaCriarConta(main, { cliente, aoEntrar: iniciarPainel, aoVoltar: telaLogin }));
   const form = $('#pn-form-login');
   const erro = $('#pn-login-erro');
   form.addEventListener('submit', async (ev) => {
@@ -237,50 +250,69 @@ function telaLogin(mensagem = '') {
 // ============================================================
 async function iniciarPainel() {
   const uid = cliente.usuario()?.id;
-  let equipe;
   try {
-    equipe = await cliente.rest(CONSULTAS.equipe(uid));
+    const [equipe, admin] = await Promise.all([cliente.rest(CONSULTAS.equipe(uid)), cliente.rest(CONSULTAS.admin(uid))]);
+    estado.admin = Array.isArray(admin) && admin.length > 0;
+    estado.estabs = estado.admin
+      ? (await cliente.rest(CONSULTAS.todas)).map((e) => ({ ...e, papel: 'dono' }))
+      : (Array.isArray(equipe) ? equipe : []).map((e) => ({ id: e.estabelecimento_id, nome: e.estabelecimentos?.nome || e.estabelecimento_id,
+        situacao: e.estabelecimentos?.situacao, papel: e.papel }));
   } catch (e) {
     if (e.status === 401) return;   // sessão caiu: encerrar() já mostrou o login
-    main.innerHTML = `<section class="pn-cartao pn-login"><h1>Painel do restaurante</h1>
+    main.innerHTML = `<section class="pn-cartao pn-login"><h1>Painel</h1>
       <p class="aviso aviso--erro" role="alert">${esc(e.message)}</p>
       <button class="btn btn-primario btn-largo" type="button" data-tentar>Tentar de novo</button></section>`;
     $('[data-tentar]').addEventListener('click', iniciarPainel);
     return;
   }
-  if (!Array.isArray(equipe) || !equipe.length) {
-    motivoSaida = 'Este usuário não tem acesso ao painel. Peça ao dono para incluir você na equipe.';
-    await cliente.sair();
+  acoesTopo.hidden = false;
+  // sem loja e sem ser admin: cadastra o estabelecimento
+  if (!estado.estabs.length && !estado.admin) {
+    telaCadastroLoja(main, { cliente, aoTerminar: iniciarPainel });
     return;
   }
-
-  estado.papel = equipe[0].papel === 'dono' ? 'dono' : 'cozinha';
+  let guardada = null;
+  try { guardada = localStorage.getItem(CHAVE_LOJA_PAINEL); } catch { /* sem localStorage */ }
+  const escolhida = estado.estabs.find((e) => e.id === guardada) || estado.estabs[0] || null;
+  estado.estab = escolhida && idLojaValido(escolhida.id) ? escolhida.id : null;
+  estado.papel = escolhida?.papel === 'dono' ? 'dono' : 'cozinha';
+  nomeLoja = escolhida?.nome || 'Administração';
+  $('[data-marca]').textContent = nomeLoja;
+  document.title = tituloBase();
   const dono = estado.papel === 'dono';
-  acoesTopo.hidden = false;
-  main.innerHTML = `
-    <section class="pn-loja" id="pn-loja" aria-label="Situação da loja"><p class="pn-dica">Carregando a loja…</p></section>
+  const temLoja = Boolean(estado.estab);
+  const trocar = estado.estabs.length > 1 ? `<label class="pn-trocar">Estabelecimento
+      <select id="pn-trocar">${estado.estabs.map((e) => `<option value="${esc(e.id)}"${e.id === estado.estab ? ' selected' : ''}>${esc(e.nome)}${e.situacao && e.situacao !== 'aprovado' ? ` (${esc(e.situacao)})` : ''}</option>`).join('')}</select></label>` : '';
+  main.innerHTML = `${trocar}
+    ${temLoja ? '<section class="pn-loja" id="pn-loja" aria-label="Situação da loja"><p class="pn-dica">Carregando a loja…</p></section>' : ''}
     <div class="pn-abas" role="tablist" aria-label="Seções do painel">
-      <button type="button" role="tab" id="tab-pedidos" aria-controls="pn-aba-pedidos" aria-selected="true" data-aba="pedidos">Pedidos <span class="pn-cont" id="pn-cont" hidden></span></button>
-      <button type="button" role="tab" id="tab-cardapio" aria-controls="pn-aba-cardapio" aria-selected="false" data-aba="cardapio" tabindex="-1">Cardápio</button>
-      ${dono ? '<button type="button" role="tab" id="tab-loja" aria-controls="pn-aba-loja" aria-selected="false" data-aba="loja" tabindex="-1">Loja</button>' : ''}
+      ${temLoja ? `<button type="button" role="tab" id="tab-pedidos" aria-controls="pn-aba-pedidos" aria-selected="true" data-aba="pedidos">Pedidos <span class="pn-cont" id="pn-cont" hidden></span></button>
+      <button type="button" role="tab" id="tab-cardapio" aria-controls="pn-aba-cardapio" aria-selected="false" data-aba="cardapio" tabindex="-1">Cardápio</button>` : ''}
+      ${temLoja && dono ? '<button type="button" role="tab" id="tab-loja" aria-controls="pn-aba-loja" aria-selected="false" data-aba="loja" tabindex="-1">Loja</button>' : ''}
+      ${estado.admin ? `<button type="button" role="tab" id="tab-admin" aria-controls="pn-aba-admin" aria-selected="${temLoja ? 'false' : 'true'}" data-aba="admin"${temLoja ? ' tabindex="-1"' : ''}>Administração</button>` : ''}
     </div>
-    <section id="pn-aba-pedidos" role="tabpanel" aria-labelledby="tab-pedidos">
+    ${temLoja ? `<section id="pn-aba-pedidos" role="tabpanel" aria-labelledby="tab-pedidos">
       <div class="pn-filtros">
         <button type="button" class="chip chip--peq" data-filtro="andamento" aria-pressed="true">Em andamento</button>
         <button type="button" class="chip chip--peq" data-filtro="concluidos" aria-pressed="false">Concluídos e cancelados (24 h)</button>
       </div>
       <p class="aviso aviso--erro" id="pn-erro" role="alert" hidden></p>
       <p class="pn-resumo" id="pn-resumo" hidden></p>
+      <p class="pn-dica" id="pn-vendas"></p>
       <div class="pn-lista" id="pn-lista"><p class="pn-dica">Carregando pedidos…</p></div>
     </section>
     <section id="pn-aba-cardapio" role="tabpanel" aria-labelledby="tab-cardapio" hidden>
       <p class="pn-dica">Esgotado: o produto continua aparecendo no site, mas ninguém consegue pedir. Volta a vender quando você marcar disponível.</p>
       ${dono ? '<p class="pn-dica">Preço: digite o valor novo e aperte Enter (ou saia do campo). Vale na hora para quem abrir o site; quem já estava com o carrinho aberto vê o total novo antes de confirmar.</p>' : ''}
       <div id="pn-cardapio"><p class="pn-dica">Carregando cardápio…</p></div>
-    </section>
-    ${dono ? `<section id="pn-aba-loja" role="tabpanel" aria-labelledby="tab-loja" hidden>
-      <div class="pn-ajustes"><div id="pn-horarios"><p class="pn-dica">Carregando…</p></div><div id="pn-entrega"></div></div>
-    </section>` : ''}`;
+    </section>` : ''}
+    ${temLoja && dono ? `<section id="pn-aba-loja" role="tabpanel" aria-labelledby="tab-loja" hidden>
+      <div class="pn-ajustes"><div id="pn-dados"><p class="pn-dica">Carregando…</p></div><div id="pn-horarios"></div><div id="pn-entrega"></div></div>
+    </section>` : ''}
+    ${estado.admin ? `<section id="pn-aba-admin" role="tabpanel" aria-labelledby="tab-admin"${temLoja ? ' hidden' : ''}><div id="pn-admin"></div></section>` : ''}`;
+  $('#pn-trocar')?.addEventListener('change', (ev) => trocarDeLoja(ev.target.value));
+  if (estado.admin) montarAdmin($('#pn-admin'), { cliente, avisar, aoAbrirLoja: trocarDeLoja });
+  if (!temLoja) return;
 
   await Promise.all([carregarPedidos(), carregarLoja(), carregarCardapio()]);
   if (!cliente.usuario()) return;
@@ -289,6 +321,7 @@ async function iniciarPainel() {
     url: CONFIG.api.supabaseUrl,
     chave: CONFIG.api.chavePublica,
     token: () => cliente.token(),
+    filtro: `estabelecimento_id=eq.${estado.estab}`,
     aoMudar: () => {
       clearTimeout(recarga);
       recarga = setTimeout(carregarPedidos, 250);
@@ -316,6 +349,35 @@ async function iniciarPainel() {
     document.querySelectorAll('[data-ha]').forEach((n) => { n.textContent = haQuanto(n.dataset.ha); });
     mostrarLoja();   // o horário pode virar (abre/fecha sozinha)
   }, 30_000));
+  carregarVendas();
+}
+
+// troca a loja aberta no painel (dono de mais de uma loja, ou admin)
+function trocarDeLoja(id) {
+  if (!estado.estabs.some((e) => e.id === id)) return;
+  try { localStorage.setItem(CHAVE_LOJA_PAINEL, id); } catch { /* fica só agora */ }
+  canal?.fechar();
+  canal = null;
+  timers.forEach(clearInterval);
+  timers = [];
+  Object.assign(estado, { pedidos: [], conhecidos: null, filtro: 'andamento', aba: 'pedidos', loja: null, horarios: [], categorias: [],
+    produtos: [], bairros: [], criando: false, ultimaCarga: 0 });
+  estado.novos.clear();
+  iniciarPainel();
+}
+
+// vendas dos últimos 7 e 30 dias (sem cancelados), calculadas no banco
+async function carregarVendas() {
+  const n = $('#pn-vendas');
+  if (!n) return;
+  const agora = Date.now();
+  const periodo = (dias) => cliente.rest('rpc/resumo_vendas', { method: 'POST', body: {
+    de: new Date(agora - dias * 86400000).toISOString(), ate: new Date(agora + 60000).toISOString(), estabelecimento: estado.estab } });
+  try {
+    const [s7, s30] = await Promise.all([periodo(7), periodo(30)]);
+    const txt = (r, rot) => { const x = r?.[0] || { pedidos: 0, total: 0 }; return `${rot}: ${x.pedidos} ${x.pedidos === 1 ? 'pedido' : 'pedidos'} · ${brl(x.total)}`; };
+    n.textContent = `${txt(s7, 'Últimos 7 dias')} · ${txt(s30, '30 dias')}`;
+  } catch { n.textContent = ''; }
 }
 
 function mostrarConexao() {
@@ -337,7 +399,7 @@ async function carregarPedidos() {
   if (carregando) return carregando;
   carregando = (async () => {
     try {
-      const lista = await cliente.rest(consultaPedidos());
+      const lista = await cliente.rest(consultaPedidos(estado.estab));
       estado.ultimaCarga = Date.now();
       receberPedidos(Array.isArray(lista) ? lista : []);
       mostrarErro('');
@@ -368,7 +430,7 @@ function receberPedidos(lista) {
     const p = lista.find((x) => x.id === id);
     if (!p || p.status !== 'recebido') estado.novos.delete(id);
   }
-  document.title = estado.novos.size ? `(${estado.novos.size}) Pedido novo! · ${nomeLoja}` : TITULO;
+  document.title = estado.novos.size ? `(${estado.novos.size}) Pedido novo! · ${nomeLoja}` : tituloBase();
   mostrarPedidos();
 }
 
@@ -485,7 +547,7 @@ async function mudarPedido(id, campos) {
     if (e.status !== 401) avisar(e.message || 'Não deu para salvar.', 'erro');
   } finally {
     estado.ocupado.delete(id);
-    document.title = estado.novos.size ? `(${estado.novos.size}) Pedido novo! · ${nomeLoja}` : TITULO;
+    document.title = estado.novos.size ? `(${estado.novos.size}) Pedido novo! · ${nomeLoja}` : tituloBase();
     mostrarPedidos();
   }
 }
@@ -493,9 +555,12 @@ async function mudarPedido(id, campos) {
 // ---------- loja aberta / fechada ----------
 async function carregarLoja() {
   try {
-    const [loja, horarios, bairros] = await Promise.all([cliente.rest(CONSULTAS.loja), cliente.rest(CONSULTAS.horarios),
-      estado.papel === 'dono' ? cliente.rest(CONSULTAS.bairros) : []]);
+    const e = estado.estab;
+    const dono = estado.papel === 'dono';
+    const [loja, horarios, bairros, privado] = await Promise.all([cliente.rest(CONSULTAS.loja(e)), cliente.rest(CONSULTAS.horarios(e)),
+      dono ? cliente.rest(CONSULTAS.bairros(e)) : [], dono ? cliente.rest(CONSULTAS.privado(e)) : []]);
     estado.loja = Array.isArray(loja) ? loja[0] || null : null;
+    estado.motivo = privado?.[0]?.situacao_motivo || '';
     estado.horarios = Array.isArray(horarios) ? horarios : [];
     estado.bairros = Array.isArray(bairros) ? bairros : [];
   } catch (e) {
@@ -525,9 +590,16 @@ function mostrarLoja() {
     detalhe = l.bloquear_fechado ? 'O site não aceita pedidos agora. Abre sozinha no horário de funcionamento.'
       : 'Fora do horário, mas o site está aceitando pedidos (bloquear_fechado desligado).';
   }
-  const aberta = l.aberta_manual && (noHorario || !l.bloquear_fechado);
+  if (l.situacao !== 'aprovado') {
+    const SIT = { pendente: ['Cadastro em análise', 'Enquanto isso, monte o cardápio e preencha Pix, horários e entrega (aba Loja). Quando aprovarmos, a loja aparece no site.'],
+      recusado: ['Cadastro recusado', 'Fale com a equipe da plataforma.'], suspenso: ['Loja suspensa', 'A loja não aparece no site. Fale com a equipe da plataforma.'] };
+    [titulo, detalhe] = SIT[l.situacao] || ['Loja fora do ar', ''];
+    if (estado.motivo) detalhe += ` Motivo: ${estado.motivo}`;
+  }
+  const aberta = l.situacao === 'aprovado' && l.aberta_manual && (noHorario || !l.bloquear_fechado);
+  const link = linkDaLoja(l.id);
   n.className = `pn-loja ${aberta ? 'is-aberta' : 'is-fechada'}`;
-  n.innerHTML = `<p class="pn-loja-txt"><b>${titulo}</b><span>${detalhe}</span></p>
+  n.innerHTML = `<p class="pn-loja-txt"><b>${esc(titulo)}</b><span>${esc(detalhe)}</span>${l.situacao === 'aprovado' ? `<span>Link da loja: <a class="link" href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></span>` : ''}</p>
     <button type="button" class="btn ${l.aberta_manual ? 'btn-sec' : 'btn-primario'}" data-loja="${l.aberta_manual ? 'fechar' : 'abrir'}">
       ${l.aberta_manual ? 'Fechar agora' : 'Reabrir a loja'}</button>`;
 }
@@ -537,7 +609,7 @@ async function mudarLoja(abrir) {
   const b = $('[data-loja]');
   if (b) b.disabled = true;
   try {
-    const r = await cliente.rest('loja?id=eq.1', { method: 'PATCH', body: { aberta_manual: abrir }, headers: { Prefer: 'return=representation' } });
+    const r = await cliente.rest(`estabelecimentos?id=eq.${estado.estab}`, { method: 'PATCH', body: { aberta_manual: abrir }, headers: { Prefer: 'return=representation' } });
     if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para abrir ou fechar a loja.');
     estado.loja = { ...estado.loja, aberta_manual: r[0].aberta_manual };
     avisar(abrir ? 'Loja reaberta.' : 'Loja fechada: o site não aceita pedidos.');
@@ -550,7 +622,7 @@ async function mudarLoja(abrir) {
 // ---------- cardápio: esgotado / disponível ----------
 async function carregarCardapio() {
   try {
-    const [cats, prods] = await Promise.all([cliente.rest(CONSULTAS.categorias), cliente.rest(CONSULTAS.produtos)]);
+    const [cats, prods] = await Promise.all([cliente.rest(CONSULTAS.categorias(estado.estab)), cliente.rest(CONSULTAS.produtos(estado.estab))]);
     estado.categorias = Array.isArray(cats) ? cats : [];
     estado.produtos = Array.isArray(prods) ? prods : [];
   } catch (e) {
@@ -639,7 +711,7 @@ async function salvarProduto(form) {
     let prod = estado.produtos.find((x) => x.id === id);
     if (novo) {
       const ordem = Math.max(0, ...estado.produtos.filter((x) => x.categoria_id === categoria).map((x) => x.ordem ?? 0)) + 1;
-      const r = await cliente.rest('produtos', { method: 'POST', body: { id: idDoNome(nome, estado.produtos.map((x) => x.id)), categoria_id: categoria, nome, descricao, preco, ordem }, headers: { Prefer: 'return=representation' } });
+      const r = await cliente.rest('produtos', { method: 'POST', body: { estabelecimento_id: estado.estab, id: idDoNome(nome, estado.produtos.map((x) => x.id)), categoria_id: categoria, nome, descricao, preco, ordem }, headers: { Prefer: 'return=representation' } });
       if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para criar produto. Só o dono pode.');
       prod = criado = r[0];
     }
@@ -647,12 +719,12 @@ async function salvarProduto(form) {
     const campos = novo ? {} : { nome, descricao, categoria_id: categoria, ativo: form.elements.ativo.checked };
     const antiga = prod.imagem;
     if (foto) {
-      const caminho = caminhoFotoNova(prod.id, foto.ext);
+      const caminho = `${estado.estab}/${caminhoFotoNova(prod.id, foto.ext)}`;
       await cliente.enviarArquivo(`produtos/${caminho}`, foto.blob);
       campos.imagem = caminho;
     }
     if (Object.keys(campos).length) {
-      const r = await cliente.rest(`produtos?id=eq.${encodeURIComponent(prod.id)}`, { method: 'PATCH', body: campos, headers: { Prefer: 'return=representation' } });
+      const r = await cliente.rest(`produtos?estabelecimento_id=eq.${estado.estab}&id=eq.${encodeURIComponent(prod.id)}`, { method: 'PATCH', body: campos, headers: { Prefer: 'return=representation' } });
       if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para mudar o cardápio. Só o dono pode.');
     }
     // foto antiga do Storage não serve mais (as do site, em assets/, ficam)
@@ -696,7 +768,15 @@ function mostrarCardapio() {
     ? `<section class="pn-cartao pn-form"><h2>Produto novo</h2>${formProduto()}
         <button type="button" class="link" data-cancelar-produto>Cancelar</button></section>`
     : '<button type="button" class="btn btn-sec" data-novo-produto>+ Produto novo</button>'}</div>` : '';
-  n.innerHTML = criar + (blocos || '<p class="pn-vazio">Nenhum produto no banco.</p>');
+  const categorias = dono ? `<form class="pn-cartao pn-form" id="pn-form-categoria" novalidate>
+      <h2>Categorias</h2>
+      <p class="pn-dica">${estado.categorias.length ? `Atuais: ${estado.categorias.map((c) => esc(c.nome)).join(', ')}.` : 'Crie as categorias antes dos produtos (ex.: Lanches, Bebidas, Porções).'}</p>
+      <div class="campo"><label for="pn-cat-nome">Nova categoria</label>
+        <input id="pn-cat-nome" name="nome" type="text" maxlength="40" autocomplete="off" placeholder="Lanches"></div>
+      <p class="aviso aviso--erro" data-erro role="alert" hidden></p>
+      <button type="submit" class="btn btn-sec"><span class="btn-txt">Criar categoria</span></button>
+    </form>` : '';
+  n.innerHTML = categorias + (estado.categorias.length ? criar : '') + (blocos || '<p class="pn-vazio">Nenhum produto ainda.</p>');
 }
 
 // preço novo (só o dono; o banco recusa da cozinha). input = o campo que mudou.
@@ -719,8 +799,8 @@ async function salvarPreco(input) {
   estado.ocupado.add(chave);
   input.disabled = true;
   try {
-    const tabela = tipo === 'produto' ? 'produtos' : 'opcoes';
-    const r = await cliente.rest(`${tabela}?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: { preco: novo }, headers: { Prefer: 'return=representation' } });
+    const filtro = tipo === 'produto' ? `produtos?estabelecimento_id=eq.${estado.estab}&id=eq.` : 'opcoes?id=eq.';
+    const r = await cliente.rest(`${filtro}${encodeURIComponent(id)}`, { method: 'PATCH', body: { preco: novo }, headers: { Prefer: 'return=representation' } });
     if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para mudar preços. Só o dono pode.');
     item.preco = r[0].preco;
     avisar(`${item.nome}: ${brl(item.preco)}`);
@@ -738,6 +818,26 @@ async function salvarPreco(input) {
   }
 }
 
+async function criarCategoria(form) {
+  const erro = $('[data-erro]', form);
+  const nome = form.elements.nome.value.trim();
+  if (nome.length < 2) { erro.textContent = 'Digite o nome da categoria.'; erro.hidden = false; return; }
+  const botao = $('button[type=submit]', form);
+  botao.disabled = true;
+  try {
+    const ordem = Math.max(0, ...estado.categorias.map((c) => c.ordem ?? 0)) + 1;
+    await cliente.rest('categorias', { method: 'POST', headers: { Prefer: 'return=representation' },
+      body: { estabelecimento_id: estado.estab, id: idDoNome(nome, estado.categorias.map((c) => c.id)), nome, ordem } });
+    await carregarCardapio();
+    avisar(`Categoria ${nome} criada.`);
+  } catch (e) {
+    botao.disabled = false;
+    if (e.status === 401) return;
+    erro.textContent = e.message || 'Não deu para salvar.';
+    erro.hidden = false;
+  }
+}
+
 async function mudarProduto(id) {
   const p = estado.produtos.find((x) => x.id === id);
   const chave = `p:${id}`;
@@ -745,7 +845,7 @@ async function mudarProduto(id) {
   estado.ocupado.add(chave);
   mostrarCardapio();
   try {
-    const r = await cliente.rest(`produtos?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: { disponivel: !p.disponivel }, headers: { Prefer: 'return=representation' } });
+    const r = await cliente.rest(`produtos?estabelecimento_id=eq.${estado.estab}&id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: { disponivel: !p.disponivel }, headers: { Prefer: 'return=representation' } });
     if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para mudar o cardápio.');
     p.disponivel = r[0].disponivel;
     avisar(`${p.nome}: ${p.disponivel ? 'disponível' : 'esgotado'}`);
@@ -811,7 +911,7 @@ async function salvarHorarios(form) {
   const botao = $('button[type=submit]', form);
   botao.disabled = true;
   try {
-    const r = await cliente.rest('rpc/salvar_horarios', { method: 'POST', body: { faixas } });
+    const r = await cliente.rest('rpc/salvar_horarios', { method: 'POST', body: { estabelecimento: estado.estab, faixas } });
     estado.horarios = Array.isArray(r) ? r : faixas;
     mostrarHorarios();
     mostrarLoja();
@@ -821,6 +921,76 @@ async function salvarHorarios(form) {
     if (e.status === 401) return;
     erro.textContent = e.message || 'Não deu para salvar.';
     erro.hidden = false;
+  }
+}
+
+// ---------- dados públicos da loja e Pix (só o dono) ----------
+const FORMAS = [['pix', 'Pix'], ['credito', 'Cartão de crédito (maquininha)'], ['debito', 'Cartão de débito (maquininha)'], ['dinheiro', 'Dinheiro']];
+function mostrarDados() {
+  const n = $('#pn-dados');
+  const l = estado.loja;
+  if (!n || !l) return;
+  const tel = (v) => String(v || '').replace(/^55(?=[0-9]{10,11}$)/, '');
+  n.innerHTML = `<form class="pn-cartao pn-form" id="pn-form-dados" novalidate>
+    <h2>Dados da loja e pagamento</h2>
+    <p class="pn-dica">O pagamento é feito direto para você: Pix na sua chave, dinheiro ou maquininha na entrega.</p>
+    ${campoTexto('descricao', 'Descrição curta', l.descricao || '', { max: 160, dica: 'Aparece na lista de estabelecimentos.' })}
+    <div class="linha-campos">
+      ${campoTexto('telefone_publico', 'Telefone da loja (com DDD)', tel(l.telefone_publico), { max: 20 })}
+      ${campoTexto('whatsapp', 'WhatsApp da loja (com DDD)', tel(l.whatsapp), { max: 20, dica: 'Opcional.' })}
+    </div>
+    ${campoTexto('retirada_local', 'Endereço para retirada', l.retirada_local || '', { max: 160 })}
+    <fieldset class="pn-bloco"><legend>Formas de pagamento aceitas</legend>
+      ${FORMAS.map(([id, nome]) => `<label class="check"><input type="checkbox" name="pg-${id}"${(l.pagamentos || []).includes(id) ? ' checked' : ''}> ${nome}</label>`).join('')}
+    </fieldset>
+    <fieldset class="pn-bloco"><legend>Pix</legend>
+      <div class="linha-campos">
+        <div class="campo"><label for="pn-pix_tipo">Tipo da chave</label><select id="pn-pix_tipo" name="pix_tipo">
+          ${[['', 'Escolha'], ['telefone', 'Telefone'], ['cpf', 'CPF'], ['cnpj', 'CNPJ'], ['email', 'E-mail'], ['aleatoria', 'Aleatória']].map(([v, t]) => `<option value="${v}"${(l.pix_tipo || '') === v ? ' selected' : ''}>${t}</option>`).join('')}
+        </select></div>
+        ${campoTexto('pix_chave', 'Chave Pix', l.pix_chave || '', { max: 77, dica: 'Telefone com +55 e DDD, ex.: +5533988887777' })}
+      </div>
+      <div class="linha-campos">
+        ${campoTexto('pix_nome', 'Nome do recebedor', l.pix_nome || '', { max: 25, dica: 'Como aparece no banco, sem acento.' })}
+        ${campoTexto('pix_cidade', 'Cidade do recebedor', l.pix_cidade || '', { max: 15 })}
+      </div>
+    </fieldset>
+    <p class="aviso aviso--erro" data-erro role="alert" hidden></p>
+    <button type="submit" class="btn btn-primario"><span class="btn-txt">Salvar dados e pagamento</span></button>
+  </form>`;
+}
+
+async function salvarDados(form) {
+  const erro = $('[data-erro]', form);
+  const falhar = (m) => { erro.textContent = m; erro.hidden = false; };
+  const v = (k) => form.elements[k].value.trim();
+  const dig = (k) => v(k).replace(/\D/g, '');
+  const telefone = dig('telefone_publico');
+  const zap = dig('whatsapp');
+  if (!/^[1-9]{2}9?[0-9]{8}$/.test(telefone)) return falhar('Confira o telefone da loja, com DDD.');
+  if (zap && !/^[1-9]{2}9?[0-9]{8}$/.test(zap)) return falhar('Confira o WhatsApp, com DDD.');
+  const pagamentos = FORMAS.map(([id]) => id).filter((id) => form.elements[`pg-${id}`].checked);
+  if (!pagamentos.length) return falhar('Marque pelo menos uma forma de pagamento.');
+  const pix = { chave: v('pix_chave'), tipo: form.elements.pix_tipo.value || null, nome: v('pix_nome').toUpperCase(), cidade: v('pix_cidade').toUpperCase() };
+  if (pagamentos.includes('pix')) {
+    const problemas = validarPix(pix);
+    if (problemas.length) return falhar(`Pix: ${problemas[0]}`);
+  }
+  erro.hidden = true;
+  const botao = $('button[type=submit]', form);
+  botao.disabled = true;
+  try {
+    const r = await cliente.rest(`estabelecimentos?id=eq.${estado.estab}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: {
+      descricao: v('descricao'), telefone_publico: telefone, whatsapp: zap ? `55${zap}` : null, retirada_local: v('retirada_local'),
+      pagamentos, pix_chave: pix.chave, pix_tipo: pix.tipo, pix_nome: pix.nome, pix_cidade: pix.cidade } });
+    if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para mudar os dados da loja.');
+    estado.loja = r[0];
+    avisar('Dados da loja salvos.');
+  } catch (e) {
+    if (e.status === 401) return;
+    falhar(e.message || 'Não deu para salvar.');
+  } finally {
+    botao.disabled = false;
   }
 }
 
@@ -925,7 +1095,7 @@ async function salvarEntrega(form) {
   const botao = $('button[type=submit]', form);
   botao.disabled = true;
   try {
-    await cliente.rest('rpc/salvar_entrega', { method: 'POST', body: { dados: corpo } });
+    await cliente.rest('rpc/salvar_entrega', { method: 'POST', body: { estabelecimento: estado.estab, dados: corpo } });
     await carregarLoja();
     mostrarEntrega();
     avisar('Entrega e retirada salvas. O site já usa os valores novos.');
@@ -945,14 +1115,15 @@ function trocarAba(aba) {
     b.setAttribute('aria-selected', String(sel));
     b.tabIndex = sel ? 0 : -1;
   });
-  for (const a of ABAS()) $(`#pn-aba-${a}`).hidden = a !== aba;
+  for (const a of ABAS()) { const painel = $(`#pn-aba-${a}`); if (painel) painel.hidden = a !== aba; }
   if (aba === 'cardapio') carregarCardapio();
   if (aba === 'loja') {
+    mostrarDados();
     mostrarHorarios();
     mostrarEntrega();
     carregarLoja().then(() => {
       // releu do banco: redesenha só se ninguém começou a mexer ainda
-      if (!$('#pn-aba-loja')?.contains(document.activeElement)) { mostrarHorarios(); mostrarEntrega(); }
+      if (!$('#pn-aba-loja')?.contains(document.activeElement)) { mostrarDados(); mostrarHorarios(); mostrarEntrega(); }
     });
   }
 }
@@ -1021,6 +1192,8 @@ main.addEventListener('submit', (ev) => {
   if (ev.target.matches('[data-produto-form]')) { ev.preventDefault(); salvarProduto(ev.target); return; }
   if (ev.target.id === 'pn-form-horarios') { ev.preventDefault(); salvarHorarios(ev.target); }
   if (ev.target.id === 'pn-form-entrega') { ev.preventDefault(); salvarEntrega(ev.target); }
+  if (ev.target.id === 'pn-form-dados') { ev.preventDefault(); salvarDados(ev.target); }
+  if (ev.target.id === 'pn-form-categoria') { ev.preventDefault(); criarCategoria(ev.target); }
 });
 
 // Enter no campo de preço salva (o "change" vem junto) sem enviar formulário nenhum
@@ -1053,7 +1226,7 @@ $('#pn-sair').addEventListener('click', () => {
 
 // voltou para a aba (tablet acordou): atualiza na hora
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && cliente?.usuario() && !acoesTopo.hidden) {
+  if (document.visibilityState === 'visible' && cliente?.usuario() && !acoesTopo.hidden && estado.estab) {
     manterTelaAcesa();
     carregarPedidos();
     carregarLoja();
@@ -1065,4 +1238,5 @@ document.addEventListener('visibilitychange', () => {
 // ============================================================
 if (!cliente) telaSemBanco();
 else if (cliente.usuario()) iniciarPainel();
-else telaLogin();
+else if (location.hash === '#cadastro') telaCriarConta(main, { cliente, aoEntrar: iniciarPainel, aoVoltar: telaLogin });
+else telaLogin(voltouDaConfirmacao());

@@ -154,6 +154,25 @@ export function clienteSupabase({ url, chave, guarda, fetchFn = (...a) => fetch(
   });
   const apagarArquivo = (caminho) => comToken(`/storage/v1/object/${caminho}`, { method: 'DELETE' });
 
+  // conta nova (dono de estabelecimento). Com confirmação de e-mail ligada no Supabase, não volta sessão:
+  // a pessoa confirma pelo link do e-mail e depois entra.
+  async function cadastrar(email, senha) {
+    let r;
+    try {
+      r = await chamar('/auth/v1/signup', { method: 'POST', body: { email: String(email).trim(), password: String(senha) } });
+    } catch (e) {
+      const cod = e.dados?.error_code || e.dados?.code;
+      if (cod === 'user_already_exists' || cod === 'email_exists') throw new ErroPainel('Já existe conta com este e-mail. Entre com ela.', e.status);
+      if (cod === 'weak_password') throw new ErroPainel('Senha fraca. Use 8 ou mais caracteres, com letras e números.', e.status);
+      if (e.status === 429 || cod === 'over_email_send_rate_limit') throw new ErroPainel('Muitos cadastros agora. Tente de novo em alguns minutos.', e.status);
+      if (e.status === 400 || e.status === 422) throw new ErroPainel('Confira o e-mail e a senha.', e.status);
+      throw e;
+    }
+    const s = sessaoDe(r);
+    if (s?.user.id) { trocar(s); return { entrou: true }; }
+    return { entrou: false };
+  }
+
   async function sair() {
     const t = sessao?.access_token;
     trocar(null);
@@ -161,7 +180,7 @@ export function clienteSupabase({ url, chave, guarda, fetchFn = (...a) => fetch(
   }
 
   return {
-    entrar, sair, rest, enviarArquivo, apagarArquivo, token, renovar,
+    entrar, cadastrar, sair, rest, enviarArquivo, apagarArquivo, token, renovar,
     usuario: () => sessao?.user || null,
     // fn(token | null): token novo depois de renovar, null ao sair/expirar
     aoTrocarToken(fn) { ouvintes.add(fn); return () => ouvintes.delete(fn); },
@@ -177,7 +196,7 @@ export function clienteSupabase({ url, chave, guarda, fetchFn = (...a) => fetch(
 const ESPERAS = [1000, 2000, 5000, 10000, 30000];
 const BATIMENTO_MS = 25000;
 
-export function tempoRealPedidos({ url, chave, token, aoMudar, aoEstado = () => {}, WebSocketImpl = globalThis.WebSocket }) {
+export function tempoRealPedidos({ url, chave, token, aoMudar, filtro, aoEstado = () => {}, WebSocketImpl = globalThis.WebSocket }) {
   const wsUrl = `${String(url).replace(/\/+$/, '').replace(/^http/, 'ws')}/realtime/v1/websocket?apikey=${encodeURIComponent(chave)}&vsn=1.0.0`;
   const TOPICO = 'realtime:painel-pedidos';
   let ws = null;
@@ -221,7 +240,7 @@ export function tempoRealPedidos({ url, chave, token, aoMudar, aoEstado = () => 
     este.onopen = () => {
       refEntrada = String(ref + 1);
       enviar(TOPICO, 'phx_join', {
-        config: { broadcast: { self: false }, presence: { key: '' }, postgres_changes: [{ event: '*', schema: 'public', table: 'pedidos' }], private: false },
+        config: { broadcast: { self: false }, presence: { key: '' }, postgres_changes: [{ event: '*', schema: 'public', table: 'pedidos', ...(filtro ? { filter: filtro } : {}) }], private: false },
         access_token: t,
       }, { join_ref: refEntrada });
       batimento = setInterval(() => {

@@ -205,3 +205,20 @@ html[data-tema="escuro"] .pn-chave[aria-checked="true"] { background: #173B27; c
 .pn-foto { width: 88px; height: 88px; object-fit: cover; border-radius: 10px; border: 1px solid var(--linha); background: var(--balcao, #f4efe9); flex: none; }
 .pn-campo-curto { max-width: 200px; }
 @media (max-width: 560px) { .pn-form-produto > .btn { width: 100%; } }
+
+/* ---- plataforma: troca de loja e administração ---- */
+.pn-trocar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; font-weight: 600; }
+.pn-trocar select { max-width: 100%; }
+.pn-adm-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 12px 0; }
+.pn-adm-kpi p { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px 12px; border: 1px solid var(--linha, #ddd); border-radius: 10px; }
+.pn-adm-kpi b { font-size: 1.15rem; }
+.pn-adm-loja { border-top: 1px solid var(--linha, #ddd); padding: 12px 0; }
+.pn-adm-loja p { margin: 2px 0; overflow-wrap: anywhere; }
+.pn-adm-loja.is-novo { border-left: 4px solid var(--destaque, #e8590c); padding-left: 10px; }
+.pn-tabela { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .95rem; }
+.pn-tabela caption { text-align: left; font-weight: 600; margin-bottom: 6px; }
+.pn-tabela th, .pn-tabela td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--linha, #ddd); }
+.pn-cartao + .pn-cartao { margin-top: 16px; }
+/* 4 abas (com Administração) e tabelas largas não podem alargar a página no celular */
+.pn-abas { overflow-x: auto; max-width: 100%; }
+.pn-tabela { display: block; overflow-x: auto; max-width: 100%; }

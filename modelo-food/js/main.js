@@ -14,19 +14,9 @@ import { atualizarContador, instalarReservaDeImagens, avisar } from './ui.js';
 import { movimentoReduzido, esc, CHAVES } from './utils.js';
 import { resumoHorario, situacaoLoja } from './horario.js';
 import { conferirConfig } from './delivery.js';
-import { PRODUTOS, CATEGORIAS, PRODUTOS_BASE } from './products.js';
-import { carregarDoBanco } from './services/cardapio.js';
 import { PLATAFORMA } from './marketplace/dados.js';
 import { entrarNaLoja, lojaGuardada, lojaAtual } from './marketplace/loja.js';
-import { paginaInicio, paginaLista, paginaCadastro, paginaSuporte, paginaTermos, paginaEstabCadastro, paginaEstabPedidos, paginaEstabCardapio, paginaEstabConfig, paginaAdmin, barraDaLoja } from './marketplace/paginas.js';
-
-// Com Supabase configurado, cardápio e dados da loja vêm do banco ANTES de desenhar a página.
-// Espera no máximo 4 s; se falhar, o site segue com products.js e config.js.
-if (CONFIG.api?.supabaseUrl && CONFIG.api?.chavePublica && !CONFIG.modoDemonstracao) {
-  document.getElementById('conteudo')?.insertAdjacentHTML('afterbegin', '<div class="wrap" data-carregando><p class="campo-dica" role="status">Carregando o cardápio…</p></div>');
-  const veio = await carregarDoBanco({ CONFIG, PRODUTOS, CATEGORIAS, reserva: PRODUTOS_BASE }, { tempo: 4000 });
-  if (veio.cardapio) carrinho.reconferir();
-}
+import { paginaInicio, paginaLista, paginaSuporte, paginaTermos, barraDaLoja } from './marketplace/paginas.js';
 
 document.documentElement.lang = 'pt-BR';
 // Cabeçalho e rodapé mostram a PLATAFORMA (Modelo Food); o nome do estabelecimento aparece nas páginas dele.
@@ -64,13 +54,15 @@ const TITULOS = {
   finalizar: () => `Finalizar pedido · ${CONFIG.marca.nome}`,
   pedido: () => `Acompanhar pedido · ${PLATAFORMA.nome}`,
   privacidade: () => `Política de privacidade · ${PLATAFORMA.nome}`,
+  suporte: () => `Suporte · ${PLATAFORMA.nome}`,
+  termos: () => `Termos e políticas · ${PLATAFORMA.nome}`,
   404: () => `Página não encontrada · ${PLATAFORMA.nome}`,
 };
-const tituloDe = (chave) => (TITULOS[chave] ? TITULOS[chave]() : `${PLATAFORMA.nome} · protótipo`);
+const tituloDe = (chave) => (TITULOS[chave] ? TITULOS[chave]() : PLATAFORMA.nome);
 
 // volta a loja que o cliente tinha escolhido (a página foi recarregada) e confere o carrinho salvo
 const guardada = lojaGuardada();
-if (guardada) { entrarNaLoja(guardada); carrinho.reconferir(); }
+if (guardada) { await entrarNaLoja(guardada).catch(() => false); carrinho.reconferir(); }
 const PRECISAM_DE_LOJA = ['loja', 'cardapio', 'carrinho', 'finalizar'];
 
 function rolarSuave(alvo) {
@@ -115,14 +107,8 @@ function paginaLojaCinema(m) {
 rota('inicio', (m) => paginaInicio(m));
 rota('lista', (m) => paginaLista(m));
 rota('loja', (m) => (CONFIG.marca.cinema ? paginaLojaCinema(m) : comBarra(m, () => montarCardapio(m, { pagina: true }))));
-rota('cadastro', (m) => paginaCadastro(m));
 rota('suporte', (m) => paginaSuporte(m));
 rota('termos', (m) => paginaTermos(m));
-rota('estab-cadastro', (m) => paginaEstabCadastro(m));
-rota('estab-pedidos', (m) => paginaEstabPedidos(m));
-rota('estab-cardapio', (m) => paginaEstabCardapio(m));
-rota('estab-config', (m) => paginaEstabConfig(m));
-rota('admin', (m) => paginaAdmin(m));
 function comBarra(m, desenhar) {
   const r = desenhar();
   const b = barraDaLoja();
@@ -152,6 +138,14 @@ iniciar((chave, render, estado) => {
     location.reload();
     return null;
   }
+  // link direto para uma loja (#loja?e=lanchonete-do-ze): entra nela e mostra o cardápio
+  const pedida = chave === 'loja' && estado?.params?.e;
+  if (pedida && lojaAtual()?.id !== pedida) {
+    main.innerHTML = '<div class="wrap"><p class="campo-dica" role="status" style="margin-top:calc(var(--topo-h) + 24px)">Abrindo o cardápio…</p></div>';
+    entrarNaLoja(pedida).then((ok) => location.replace(ok ? '#loja' : '#inicio'), () => location.replace('#inicio'));
+    return null;
+  }
+  if (pedida) { location.replace('#loja'); return null; }
   if (PRECISAM_DE_LOJA.includes(chave) && !lojaAtual()) {
     location.hash = '#inicio';
     return null;

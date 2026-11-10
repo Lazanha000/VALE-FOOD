@@ -19,8 +19,8 @@ const idProdutoOk = (v) => typeof v === 'string' && /^[a-z0-9-]{1,60}$/.test(v);
 const bool = (v, padrao) => (typeof v === 'boolean' ? v : padrao);
 
 // Foto: caminho do próprio site (assets/produtos/...) ou arquivo do Storage
-// (bucket "produtos", nome "<produto>/<arquivo>.webp|jpg|png"), virando URL pública.
-const NOME_STORAGE = /^[a-z0-9-]{1,60}\/[A-Za-z0-9-]{8,64}\.(webp|jpg|png)$/;
+// (bucket "produtos", nome "<loja>/<produto>/<arquivo>.webp|jpg|png"), virando URL pública.
+const NOME_STORAGE = /^[a-z0-9-]{1,40}\/[a-z0-9-]{1,60}\/[A-Za-z0-9-]{8,64}\.(webp|jpg|png)$/;
 export function fotoDoBanco(v, supabaseUrl) {
   if (typeof v !== 'string' || !v) return null;
   const local = caminhoFoto(v);
@@ -156,20 +156,23 @@ export function lojaDoBanco(lojaDb, bairrosDb, horariosDb, { pagamentosBase = []
 
 // ---------- busca no banco ----------
 const TEMPO_LIMITE = 6000;
-const CONSULTAS = {
-  categorias: 'categorias?select=id,nome,ordem,ativo&ativo=eq.true',
+export const idLojaValido = (v) => typeof v === 'string' && /^[a-z0-9][a-z0-9-]{1,39}$/.test(v);
+// as 5 consultas de UM estabelecimento (cada tabela tem estabelecimento_id)
+const consultas = (e) => ({
+  categorias: `categorias?select=id,nome,ordem,ativo&ativo=eq.true&estabelecimento_id=eq.${e}`,
   produtos: 'produtos?select=id,categoria_id,nome,descricao,preco,imagem,arte,destaque,disponivel,ativo,removiveis,ordem,'
-    + 'grupos_opcao(chave,nome,tipo,obrigatorio,max,ordem,opcoes(chave,nome,preco,ativo,ordem))&ativo=eq.true',
-  loja: 'loja?select=*&id=eq.1',
-  bairros: 'bairros?select=nome,taxa,ativo&ativo=eq.true',
-  horarios: 'horarios?select=dia,abre,fecha',
-};
+    + `grupos_opcao(chave,nome,tipo,obrigatorio,max,ordem,opcoes(chave,nome,preco,ativo,ordem))&ativo=eq.true&estabelecimento_id=eq.${e}`,
+  loja: `estabelecimentos?select=*&id=eq.${e}`,
+  bairros: `bairros?select=nome,taxa,ativo&ativo=eq.true&estabelecimento_id=eq.${e}`,
+  horarios: `horarios?select=dia,abre,fecha&estabelecimento_id=eq.${e}`,
+});
 
-// Lê as 5 tabelas de uma vez. Qualquer falha (sem internet, demora, erro) -> lança erro;
-// quem chama decide ficar com a reserva.
-export async function buscarDoBanco(api, { fetchFn = fetch, tempo = TEMPO_LIMITE } = {}) {
+// Lê as 5 tabelas do estabelecimento de uma vez. Qualquer falha (sem internet, demora, erro) -> lança erro.
+export async function buscarDoBanco(api, { estabelecimento, fetchFn = fetch, tempo = TEMPO_LIMITE } = {}) {
   const base = String(api?.supabaseUrl || '').replace(/\/+$/, '');
   if (!base || !api?.chavePublica) throw new Error('Supabase não configurado');
+  if (!idLojaValido(estabelecimento)) throw new Error('Estabelecimento inválido');
+  const CONSULTAS = consultas(estabelecimento);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), tempo);
   try {
@@ -186,6 +189,26 @@ export async function buscarDoBanco(api, { fetchFn = fetch, tempo = TEMPO_LIMITE
     const nomes = Object.keys(CONSULTAS);
     const res = await Promise.all(nomes.map((k) => pegar(CONSULTAS[k])));
     return Object.fromEntries(nomes.map((k, i) => [k, res[i]]));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// uma consulta pública qualquer (lista de estabelecimentos da vitrine)
+export async function lerDoBanco(api, caminho, { fetchFn = fetch, tempo = TEMPO_LIMITE } = {}) {
+  const base = String(api?.supabaseUrl || '').replace(/\/+$/, '');
+  if (!base || !api?.chavePublica) throw new Error('Supabase não configurado');
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), tempo);
+  try {
+    const r = await fetchFn(`${base}/rest/v1/${caminho}`, {
+      headers: { apikey: api.chavePublica, Authorization: `Bearer ${api.chavePublica}`, Accept: 'application/json' },
+      signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
+    });
+    if (!r.ok) throw new Error(`banco respondeu ${r.status}`);
+    const dados = await r.json();
+    if (!Array.isArray(dados)) throw new Error('resposta inesperada');
+    return dados;
   } finally {
     clearTimeout(timer);
   }
@@ -221,7 +244,8 @@ export function aplicarDoBanco(dados, { CONFIG, PRODUTOS, CATEGORIAS, reserva = 
 // Atalho para o main.js: busca e aplica; em qualquer erro fica tudo como estava (products.js e config.js).
 export async function carregarDoBanco(alvos, opcoes = {}) {
   try {
-    return aplicarDoBanco(await buscarDoBanco(alvos.CONFIG.api, opcoes), alvos);
+    // sem estabelecimento informado: o que o cliente está vendo agora (js/marketplace/loja.js)
+    return aplicarDoBanco(await buscarDoBanco(alvos.CONFIG.api, { estabelecimento: alvos.CONFIG.estabelecimentoId, ...opcoes }), alvos);
   } catch (e) {
     console.warn('Cardápio do banco indisponível; usando o do site.', e?.message || e);
     return { cardapio: false, loja: false };

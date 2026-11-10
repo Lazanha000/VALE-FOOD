@@ -179,13 +179,13 @@ export const CONFIG = {
   // Supabase > Project Settings > API.
   // supabaseUrl: ex.: 'https://abcdefgh.supabase.co'
   // chavePublica: a chave "publishable" (sb_publishable_...). Pode ficar no site.
-  // NUNCA ponha aqui a chave "secret"/"service_role". Crie o banco antes (supabase/LEIAME.md);
+  // NUNCA ponha aqui a chave "secret"/"service_role". Crie o banco antes (supabase/LEIAME-PLATAFORMA.md);
   // enquanto estiver null, o cardápio sai de products.js e o pedido segue só pelo WhatsApp.
-  api: { supabaseUrl: null, chavePublica: null },
+  api: { supabaseUrl: 'https://yuwkozekhanioglycsdx.supabase.co', chavePublica: 'sb_publishable_XaucN9CFXU0iUbVdwAJE_Q_EFCE3rj1' },
 
   // Modo demonstração: pedidos não são enviados a nenhum restaurante.
   // true ignora o Supabase acima. Cliente real = false.
-  modoDemonstracao: true,
+  modoDemonstracao: false,
 
   textos: {
     cena1Titulo: 'FEITO PARA SER LENDÁRIO.',

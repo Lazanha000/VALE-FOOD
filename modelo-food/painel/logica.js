@@ -136,21 +136,25 @@ export function paraComanda(p) {
 // ---------- consultas ao /rest/v1 ----------
 const COLUNAS_PEDIDO = 'id,codigo,criado_em,status,pagamento_status,modo,cliente_nome,cliente_telefone,entrega,'
   + 'pagamento_forma,troco_para,obs,subtotal,desconto,taxa,total,pedido_itens(ordem,nome,qtd,preco_unitario,escolhas,remover,obs)';
-// em andamento (de qualquer dia) + todos das últimas 24 h
-export function consultaPedidos(agora = Date.now()) {
+// em andamento (de qualquer dia) + todos das últimas 24 h, de UM estabelecimento
+export function consultaPedidos(estab, agora = Date.now()) {
   const desde = new Date(agora - 24 * 3600 * 1000).toISOString();
-  return `pedidos?select=${COLUNAS_PEDIDO}&or=(status.in.(${EM_ANDAMENTO.join(',')}),criado_em.gte.${desde})`
+  return `pedidos?select=${COLUNAS_PEDIDO}&estabelecimento_id=eq.${estab}&or=(status.in.(${EM_ANDAMENTO.join(',')}),criado_em.gte.${desde})`
     + '&order=criado_em.desc&pedido_itens.order=ordem&limit=300';
 }
+// e = id do estabelecimento (validado em idLojaValido antes de usar)
 export const CONSULTAS = {
-  equipe: (uid) => `equipe?select=nome,papel&user_id=eq.${encodeURIComponent(uid)}`,
-  loja: 'loja?select=aberta_manual,bloquear_fechado,fuso,entrega_ativa,entrega_tempo,entrega_minimo,taxa_tipo,taxa_fixa,'
-    + 'retirada_ativa,retirada_tempo,retirada_minimo&id=eq.1',
-  horarios: 'horarios?select=dia,abre,fecha',
-  categorias: 'categorias?select=id,nome,ordem&order=ordem',
-  produtos: 'produtos?select=id,nome,categoria_id,preco,disponivel,ativo,ordem,descricao,imagem,grupos_opcao(id,nome,ordem,opcoes(id,nome,preco,ativo,ordem))&order=ordem',
+  equipe: (uid) => `equipe?select=estabelecimento_id,papel,estabelecimentos(nome,situacao)&user_id=eq.${encodeURIComponent(uid)}`,
+  admin: (uid) => `admins?select=user_id&user_id=eq.${encodeURIComponent(uid)}`,
+  todas: 'estabelecimentos?select=id,nome,situacao&order=nome',
+  loja: (e) => `estabelecimentos?select=*&id=eq.${e}`,
+  privado: (e) => `estabelecimentos_privado?select=situacao_motivo&estabelecimento_id=eq.${e}`,
+  horarios: (e) => `horarios?select=dia,abre,fecha&estabelecimento_id=eq.${e}`,
+  categorias: (e) => `categorias?select=id,nome,ordem&order=ordem&estabelecimento_id=eq.${e}`,
+  produtos: (e) => 'produtos?select=id,nome,categoria_id,preco,disponivel,ativo,ordem,descricao,imagem,grupos_opcao(id,nome,ordem,opcoes(id,nome,preco,ativo,ordem))'
+    + `&order=ordem&estabelecimento_id=eq.${e}`,
   // só o dono usa (a lista inteira, com os inativos: a RLS mostra para a equipe)
-  bairros: 'bairros?select=nome,taxa,ativo&order=nome',
+  bairros: (e) => `bairros?select=nome,taxa,ativo&order=nome&estabelecimento_id=eq.${e}`,
 };
 
 // ---------- resumo do dia (fechamento de caixa) ----------
@@ -178,8 +182,8 @@ export function idDoNome(nome, existentes = []) {
   if (!usados.has(base)) return base;
   for (let n = 2; ; n++) if (!usados.has(`${base}-${n}`)) return `${base}-${n}`;
 }
-// caminho da foto nova no Storage: '<id>/<16 letras aleatórias>.<ext>' (nome novo a cada troca: o celular
+// caminho da foto nova no Storage: '<loja>/<produto>/<16 letras aleatórias>.<ext>' (a loja vem na frente, no painel) (nome novo a cada troca: o celular
 // do cliente não fica com a foto velha guardada)
 export const caminhoFotoNova = (id, ext, aleatorio = crypto.randomUUID().replace(/-/g, '').slice(0, 16)) => `${id}/${aleatorio}.${ext}`;
 // produtos.imagem é do Storage (e não um arquivo do site em assets/)?
-export const fotoDoStorage = (imagem) => typeof imagem === 'string' && /^[a-z0-9-]{1,60}\/[A-Za-z0-9-]{8,64}\.(webp|jpg|png)$/.test(imagem);
+export const fotoDoStorage = (imagem) => typeof imagem === 'string' && /^[a-z0-9-]{1,40}\/[a-z0-9-]{1,60}\/[A-Za-z0-9-]{8,64}\.(webp|jpg|png)$/.test(imagem);

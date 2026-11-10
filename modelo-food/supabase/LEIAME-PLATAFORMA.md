@@ -24,7 +24,30 @@ insert into public.admins (user_id, nome)
 select id, 'Seu nome' from auth.users where email = 'seu-email@exemplo.com';
 ```
 
-## 3. O que o banco já faz
+## 3. Configurar o login (uma vez)
+
+Sem isso, o link de confirmação que chega por e-mail para o dono da loja leva para um endereço errado.
+
+1. No Supabase, abra **Authentication > URL Configuration**.
+2. Em **Site URL**, coloque o endereço do painel:
+   `https://lazanha000.github.io/VALE-FOOD/modelo-food/admin.html`
+3. Em **Redirect URLs**, adicione o mesmo endereço e clique em **Save**.
+
+Quando o site mudar de endereço (domínio próprio ou Cloudflare Pages), troque nos dois lugares.
+
+O e-mail grátis do Supabase manda **poucos e-mails por hora**. Para muitos cadastros no mesmo dia, configure um SMTP próprio em **Authentication > Emails > SMTP Settings**.
+
+## 4. Como uma loja entra na plataforma
+
+1. O dono abre o site e toca em **Cadastrar meu estabelecimento**.
+2. Cria a conta (e-mail e senha), confirma o e-mail e preenche os dados da loja. A loja fica **Em análise**.
+3. No painel, ele monta o cardápio (categorias e produtos) e preenche Pix, horários e entrega na aba **Loja**.
+4. Você entra no mesmo painel (`admin.html`) com a sua conta de admin. Na aba **Administração**, confere os dados e clica em **Aprovar**. A loja aparece no site na hora.
+5. Para a cozinha: o funcionário cria uma conta no painel e você o põe na equipe da loja, no SQL Editor:
+   `insert into public.equipe (estabelecimento_id, user_id, papel) select 'id-da-loja', id, 'cozinha' from auth.users where email = 'email@dofuncionario.com';`
+   O id da loja aparece no link dela (`#loja?e=id-da-loja`).
+
+## 5. O que o banco já faz
 
 | Quem | O que pode |
 |---|---|
@@ -35,7 +58,7 @@ select id, 'Seu nome' from auth.users where email = 'seu-email@exemplo.com';
 
 O pagamento é feito direto ao estabelecimento (Pix da loja, dinheiro ou maquininha). O banco não guarda cartão.
 
-## 4. Testar no computador (opcional)
+## 6. Testar no computador (opcional)
 
 Com o Docker ligado:
 
@@ -46,8 +69,13 @@ node supabase/testes/testar-plataforma.mjs
 
 São 32 testes de permissão, pedido, avaliação, suporte e suspensão.
 
-## Ainda falta (próximas fases)
+Para testar o site e o painel no navegador, com um "Supabase local" (PostgREST no Docker), veja as instruções no começo de `supabase/testes/supabase-local.mjs`.
 
-- Ligar o site e os painéis a este banco (hoje o site ainda usa os dados de exemplo).
+Os arquivos `schema.sql`, `instalar.sql`, `cardapio.sql`, `gerar-cardapio.mjs`, `virar-dono.sql`, `LEIAME.md` e os testes `testar-banco.mjs`, `testar-painel.mjs` e `testar-site.mjs` são do site antigo, de uma loja só. Eles não servem para esta plataforma.
+
+## Ainda falta
+
+- Textos jurídicos (termos de uso, privacidade, adesão), revisados por advogado.
+- Telas do painel para criar opções dos produtos (tamanho, adicionais) e para pôr pessoas na equipe. Hoje as duas coisas são feitas no Supabase.
 - Conta de cliente por SMS (custa por mensagem). Por enquanto, o cliente pede só com nome e telefone, como no site antigo.
 - Hospedagem comercial (Cloudflare Pages) e o aplicativo para a Play Store.

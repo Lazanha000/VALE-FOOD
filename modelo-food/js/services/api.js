@@ -113,6 +113,8 @@ export function doServidor(r, local = {}) {
       obs: i.obs || '',
     })),
     totais: { subtotal: r.subtotal, desconto: r.desconto || 0, taxa: r.taxa, total: r.total },
+    estabelecimento: r.estabelecimento || local.estabelecimento || null,   // { id, nome, telefone, whatsapp }
+    avaliado: r.avaliado === true,
     demonstracao: false,
   };
 }
@@ -142,7 +144,7 @@ function guardarNoAparelho(registro, lembrar) {
 // do mesmo pedido: assim um clique repetido ou uma nova tentativa não duplica o pedido.
 export async function criarPedido(pedido, { lembrar = false, chave = crypto.randomUUID(), fetchFn } = {}) {
   if (usarBackend()) {
-    const r = await rpc('criar_pedido', { dados: paraServidor(pedido), chave }, { fetchFn });
+    const r = await rpc('criar_pedido', { estabelecimento: CONFIG.estabelecimentoId, dados: paraServidor(pedido), chave }, { fetchFn });
     if (!r?.codigo || !r?.token) throw new Error('A loja não confirmou o pedido. Tente de novo em instantes.');
     const registro = doServidor(r, { cliente: pedido.cliente, recebimento: pedido.recebimento, entrega: pedido.entrega, pagamento: pedido.pagamento, obs: pedido.obs });
     guardarNoAparelho(registro, lembrar);
