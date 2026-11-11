@@ -1,0 +1,3 @@
+# Vale quando o site estiver na raiz de um domínio próprio.
+User-agent: *
+Disallow: /admin.html

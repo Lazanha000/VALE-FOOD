@@ -21,12 +21,20 @@ document.documentElement.lang = 'pt-BR';
 // Cabeçalho e rodapé mostram a PLATAFORMA (Modelo Food); o nome do estabelecimento aparece nas páginas dele.
 const m0 = { ...CONFIG.marca, nome: PLATAFORMA.nome, nomeCurto: PLATAFORMA.nomeCurto, sufixo: PLATAFORMA.sufixo, descricao: 'Peça de lanchonetes e restaurantes do Vale do Jequitinhonha e do Vale do Mucuri.', local: 'Araçuaí, MG' };
 document.querySelectorAll('[data-marca-nome]').forEach((n) => {
-  n.innerHTML = `${esc(m0.nomeCurto)}${n.closest('.rodape') ? ' ' : ''}<b>${esc(m0.sufixo)}</b>`;
+  n.innerHTML = `${esc(m0.nomeCurto)} <b>${esc(m0.sufixo)}</b>`;
 });
 document.querySelectorAll('[data-marca-descricao]').forEach((n) => { n.textContent = m0.descricao; });
 document.querySelectorAll('[data-marca-local]').forEach((n) => { n.textContent = [m0.nome, m0.local].filter(Boolean).join(' · '); });
-// razão social, CNPJ e endereço da empresa no rodapé: entram quando o CNPJ existir (ver docs/REAPROVEITAMENTO.md)
-document.querySelectorAll('[data-empresa]').forEach((n) => { n.hidden = true; });
+// razão social, CNPJ e endereço da empresa no rodapé (Decreto 7.962/2013): aparecem sozinhos quando o CNPJ
+// for preenchido em CONFIG.privacidade (js/config.js)
+{
+  const pv = CONFIG.privacidade || {};
+  const temCnpj = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(pv.cnpj || '');
+  document.querySelectorAll('[data-empresa]').forEach((n) => {
+    n.textContent = temCnpj ? [pv.controlador, `CNPJ ${pv.cnpj}`, pv.endereco, pv.email].filter(Boolean).join(' · ') : '';
+    n.hidden = !temCnpj;
+  });
+}
 document.querySelector('.topo .marca')?.setAttribute('aria-label', `${m0.nome}, página inicial`);
 const btnTema = document.getElementById('btn-tema');
 const metaTema = document.querySelector('meta[name=theme-color]');
@@ -110,7 +118,7 @@ iniciar((chave, render, estado) => {
   // link direto para uma loja (#loja?e=lanchonete-do-ze): entra nela e mostra o cardápio
   const pedida = chave === 'loja' && estado?.params?.e;
   if (pedida && lojaAtual()?.id !== pedida) {
-    main.innerHTML = '<div class="wrap"><p class="campo-dica" role="status" style="margin-top:calc(var(--topo-h) + 24px)">Abrindo o cardápio…</p></div>';
+    main.innerHTML = '<div class="wrap"><p class="campo-dica mk-abrindo" role="status">Abrindo o cardápio…</p></div>';
     entrarNaLoja(pedida).then((ok) => location.replace(ok ? '#loja' : '#inicio'), () => location.replace('#inicio'));
     return null;
   }

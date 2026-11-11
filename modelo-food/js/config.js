@@ -132,34 +132,6 @@ export const CONFIG = {
     { id: 'dinheiro', nome: 'Dinheiro', detalhe: 'Informe se precisa de troco' },
   ],
 
-  // Fotos da cena de abertura. As camadas do lanche já vêm recortadas da foto real
-  // (assets/cena/camadas/*.webp, lista em js/art.js > CINE_LAYERS).
-  // Para trocar uma camada sem mexer no código, ponha o caminho aqui.
-  // Ex.: carne: 'assets/cena/carne-nova.webp'
-  // batatas e pote: fotos reais (se faltar o arquivo, volta para a ilustração).
-  fotosCena: {
-    paoTopo: null,
-    picles: null,
-    cebola: null,
-    bacon: null,
-    queijo: null,
-    carne: null,
-    salada: null,
-    paoBase: null,
-    batatas: 'assets/cena/batatas.webp',
-    lata: 'assets/cena/lata.webp',   // bebida na caixa (null = milkshake desenhado)
-    pote: 'assets/cena/pote.webp',
-  },
-
-  // Arte da embalagem (fotos fornecidas pela marca). null = arte desenhada.
-  // frente: foto da frente da caixa, já sem perspectiva; proporcaoFrente = largura / altura.
-  // selo: selo redondo com fundo transparente, usado na tampa.
-  embalagem: {
-    frente: null,   // era a arte da marca-modelo; ponha a arte da marca aqui
-    proporcaoFrente: 1200 / 336,
-    selo: null,
-  },
-
   // Política de privacidade (LGPD): quem responde pelos dados e como falar com essa pessoa.
   // Valores abaixo são PROVISÓRIOS (marca fictícia): troque pelos do comércio e peça
   // revisão de quem entende de LGPD antes de publicar para clientes reais.
@@ -187,16 +159,6 @@ export const CONFIG = {
   // true ignora o Supabase acima. Cliente real = false.
   modoDemonstracao: false,
 
-  textos: {
-    cena1Titulo: 'FEITO PARA SER LENDÁRIO.',
-    cena1Sub: 'Ingredientes de verdade. Sabor sem limites.',
-    cena2Olho: 'Hambúrguer',
-    cena2Titulo: 'Camada por camada.',
-    cena3Titulo: 'Montado na hora. Embalado com cuidado.',
-    cena4Titulo: 'SEU PRÓXIMO FAVORITO ESTÁ AQUI.',
-    ctaCardapio: 'EXPLORAR CARDÁPIO',
-    avisoDemo: '',
-  },
 };
 
 aplicarConfig(CONFIG, AJUSTES);

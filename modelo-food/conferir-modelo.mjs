@@ -31,6 +31,10 @@ const manifesto = JSON.parse(ler('manifest.webmanifest'));
 if (PLATAFORMA.provisorio) falha('js/marketplace/dados.js', `PLATAFORMA.provisorio é true (nome "${PLATAFORMA.nome}" ainda é provisório)`);
 if (!html.includes(`<title>${PLATAFORMA.nome}</title>`)) falha('index.html', `<title> não é "${PLATAFORMA.nome}" (igual a PLATAFORMA.nome)`);
 if (!html.includes(`og:site_name" content="${PLATAFORMA.nome}"`)) falha('index.html', `og:site_name não é "${PLATAFORMA.nome}"`);
+const ogUrl = /property="og:url" content="([^"]*)"/.exec(html)?.[1] || '';
+const ogImg = /property="og:image" content="([^"]*)"/.exec(html)?.[1] || '';
+if (!ogImg.startsWith(ogUrl) || !/^https:\/\//.test(ogUrl)) falha('index.html', 'og:url e og:image precisam ser https:// e do mesmo endereço');
+if (/github\.io/.test(ogUrl)) falha('index.html', 'og:url ainda é o GitHub Pages (uso comercial não permitido): troque pelo domínio próprio');
 if (manifesto.name !== PLATAFORMA.nome) falha('manifest.webmanifest', `name é "${manifesto.name}", deveria ser "${PLATAFORMA.nome}"`);
 
 // ---- 3. Sistema ligado de verdade ----

@@ -1,0 +1,21 @@
+# Plano grátis do Supabase pausa o projeto depois de alguns dias sem uso (o site para de mostrar as lojas).
+# Esta tarefa lê a vitrine a cada 2 dias, como um visitante faria. Não precisa de segredo:
+# a chave abaixo é a "publishable", a mesma que já está no site (modelo-food/js/config.js).
+# Com o plano pago ou com o site em uso diário, pode apagar este arquivo.
+# Atenção: o GitHub desliga tarefas agendadas de repositório sem nenhum commit há 60 dias.
+name: Manter Supabase ativo
+on:
+  schedule:
+    - cron: '17 9 */2 * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ler a vitrine
+        run: |
+          curl -fsS -o /dev/null -w "HTTP %{http_code}\n" \
+            "https://yuwkozekhanioglycsdx.supabase.co/rest/v1/estabelecimentos?select=id&limit=1" \
+            -H "apikey: sb_publishable_XaucN9CFXU0iUbVdwAJE_Q_EFCE3rj1"

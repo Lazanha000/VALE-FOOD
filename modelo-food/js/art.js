@@ -1,10 +1,7 @@
 // ============================================================
 // ILUSTRAÇÕES PROVISÓRIAS (SVG)
-// Servem enquanto não houver fotos reais. Cada camada do hambúrguer
-// é uma imagem separada, no mesmo formato que as fotos recortadas
-// terão (PNG/WebP com fundo transparente, 400 px de largura de base).
-// Para usar fotos, preencha CONFIG.fotosCena e o campo "imagem" dos
-// produtos; nada aqui precisa mudar.
+// Desenho do produto que ainda não tem foto (campo "imagem" vazio).
+// O tipo do desenho vem do campo "arte" do produto (ver artFor no fim).
 // ============================================================
 
 const uri = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
@@ -285,52 +282,6 @@ function burgerGroup(stack) {
   return { defs, body, h: bottom };
 }
 
-// ---------------- Cena cinematográfica ----------------
-
-export const CINE_W = 400;
-// Camadas recortadas da foto real (assets/cena/camadas). px = largura da foto em pixels; ao lado de
-// cada uma há a versão "-m" (65% da largura) que o celular baixa. Trocou alguma foto? Gere a "-m",
-// ajuste px e atualize a lista do script do tema no index.html (ele pede essas fotos cedo, só na
-// página inicial). Medidas em unidades:
-// 400 = largura total do lanche. y = posição com o lanche montado;
-// dy = quanto a camada se desloca quando o lanche abre (aberto = igual à foto).
-export const CINE_BOTTOM = 370.2; // base do pão de baixo (lanche montado)
-export const CINE_CENTER = 185.1; // centro vertical do lanche montado
-export const CINE_EXP_TOP = -117.4; // topo do lanche aberto
-export const CINE_EXP_BOTTOM = 628.7; // base do lanche aberto
-
-// Ordem de cima para baixo. rot = giro máximo (graus) no meio da abertura.
-export const CINE_LAYERS = [
-  { id: 'paoTopo', foto: 'assets/cena/camadas/paoTopo.webp', px: 826, tipo: 'topBun', x: 14.5, y: 0.0, w: 361.9, h: 150.7, dy: -117.4, z: 6, rot: -7, nome: 'Pão com gergelim', det: 'Com molho da casa', lado: 'd' },
-  { id: 'picles', foto: 'assets/cena/camadas/picles.webp', px: 678, tipo: null, x: 44.2, y: 96.8, w: 297.0, h: 58.3, dy: -64.0, z: 7, rot: 9, nome: 'Picles', det: 'Pepino em conserva', lado: 'e' },
-  { id: 'cebola', foto: 'assets/cena/camadas/cebola.webp', px: 793, tipo: 'onion', x: 28.5, y: 110.0, w: 347.4, h: 62.7, dy: -34.2, z: 8, rot: -8, nome: 'Cebola roxa', det: 'Em anéis, crocante', lado: 'd' },
-  { id: 'bacon', foto: 'assets/cena/camadas/bacon.webp', px: 904, tipo: 'bacon', x: 3.9, y: 123.1, w: 396.1, h: 114.3, dy: 9.6, z: 5, rot: 6, nome: 'Bacon crocante', det: 'Defumado, em fatias', lado: 'e' },
-  { id: 'queijo', foto: 'assets/cena/camadas/queijo.webp', px: 822, tipo: 'cheese', x: 15.8, y: 166.5, w: 360.1, h: 103.8, dy: 64.8, z: 4, rot: -5, nome: 'Queijo cheddar', det: 'Derretido na chapa', lado: 'd' },
-  { id: 'carne', foto: 'assets/cena/camadas/carne.webp', px: 773, tipo: 'patty', x: 26.3, y: 185.3, w: 338.7, h: 113.0, dy: 121.8, z: 3, rot: 4, nome: 'Blend bovino grelhado', det: '160 g, crosta na chapa', lado: 'e' },
-  { id: 'salada', foto: 'assets/cena/camadas/salada.webp', px: 888, tipo: 'lettuce', x: 0.0, y: 197.2, w: 389.0, h: 117.9, dy: 224.3, z: 2, rot: -4, nome: 'Tomate e alface', det: 'Frescos, do dia', lado: 'd' },
-  { id: 'paoBase', foto: 'assets/cena/camadas/paoBase.webp', px: 740, tipo: 'bottomBun', x: 33.3, y: 277.8, w: 324.2, h: 92.4, dy: 258.5, z: 1, rot: 2, nome: 'Base do pão', det: 'Tostada por dentro', lado: 'e' },
-];
-
-// srcset/sizes da foto de uma camada: o navegador escolhe a "-m" ou a inteira pelo tamanho na tela.
-// O lanche ocupa ~76% da largura no celular (até 759 px) e ~35% no computador (js/scene.js).
-// O script do tema no index.html repete esta conta no preload: mudou aqui, mude lá.
-export function camadaSrcset(L) {
-  const m = L.foto.replace(/\.webp$/, '-m.webp');
-  return {
-    srcset: `${m} ${Math.round(L.px * 0.65)}w, ${L.foto} ${L.px}w`,
-    sizes: `(max-width: 759px) ${Math.ceil((76 * L.w) / CINE_W)}vw, ${Math.ceil((35 * L.w) / CINE_W)}vw`,
-  };
-}
-
-
-const cacheLayer = {};
-export function layerImage(tipo) {
-  if (!cacheLayer[tipo]) {
-    const L = LAYER[tipo](pref());
-    cacheLayer[tipo] = { src: uri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 ${L.h}" width="800" height="${L.h * 2}"><defs>${L.defs}</defs>${L.body}</svg>`), h: L.h };
-  }
-  return cacheLayer[tipo];
-}
 
 function friesGroup(seed = 77, count = 30) {
   const r = rng(seed);
@@ -368,75 +319,6 @@ function cupGroup(color = ['#F7B06A', '#E07A34']) {
       <ellipse cx="60" cy="30" rx="46" ry="11" fill="#E9E3D8"/><ellipse cx="60" cy="31" rx="40" ry="8.5" fill="url(#${p}s)"/>
       <path d="M38,29 C48,25 62,25 74,28" stroke="#FFFFFF" stroke-width="2" fill="none" opacity=".55" stroke-linecap="round"/>`,
   };
-}
-
-let friesCache;
-export function friesImage() {
-  if (!friesCache) {
-    const g = friesGroup();
-    friesCache = uri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 230" width="640" height="460"><defs>${g.defs}</defs>${g.body}</svg>`);
-  }
-  return friesCache;
-}
-let cupCache;
-export function cupImage() {
-  if (!cupCache) {
-    const g = cupGroup();
-    cupCache = uri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 104" width="240" height="208"><defs>${g.defs}</defs>${g.body}</svg>`);
-  }
-  return cupCache;
-}
-
-// Milkshake no copo com tampa de cúpula (como na foto da embalagem). viewBox 120 x 200.
-let shakeCache;
-export function shakeImage() {
-  if (!shakeCache) {
-    const gotas = [[30, 66, 30], [46, 64, 46], [62, 66, 38], [80, 64, 52], [94, 66, 28]]
-      .map(([x, y, l]) => `<path d="M${x - 5} ${y} C${x - 5} ${y + l * 0.6} ${x - 2} ${y + l} ${x} ${y + l} C${x + 3} ${y + l} ${x + 5} ${y + l * 0.6} ${x + 5} ${y} Z" fill="url(#sk-calda)"/>`).join('');
-    const pedacos = [[40, 40, 7], [56, 33, 6], [72, 38, 8], [86, 44, 6], [50, 47, 5], [64, 50, 6], [30, 48, 5], [80, 30, 5]]
-      .map(([x, y, r], i) => `<path d="M${x - r} ${y} L${x - r * 0.3} ${y - r} L${x + r} ${y - r * 0.4} L${x + r * 0.6} ${y + r * 0.8} L${x - r * 0.6} ${y + r * 0.7} Z" fill="${i % 2 ? '#2B1A12' : '#3D2618'}"/>`).join('');
-    shakeCache = uri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" width="240" height="400"><defs>
-      <linearGradient id="sk-copo" x1="0" x2="1"><stop offset="0" stop-color="#E9DFD2"/><stop offset=".45" stop-color="#FBF6EF"/><stop offset="1" stop-color="#D8CBBB"/></linearGradient>
-      <linearGradient id="sk-calda" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2214"/><stop offset="1" stop-color="#5A341D"/></linearGradient>
-      <radialGradient id="sk-creme" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E7DDD0"/></radialGradient>
-      <linearGradient id="sk-vidro" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset=".3" stop-color="#FFFFFF" stop-opacity=".08"/><stop offset=".8" stop-color="#FFFFFF" stop-opacity=".05"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".35"/></linearGradient>
-    </defs>
-      <ellipse cx="60" cy="193" rx="34" ry="6" fill="#000" opacity=".35"/>
-      <path d="M14 62 L26 188 Q60 196 94 188 L106 62 Z" fill="url(#sk-copo)"/>
-      ${gotas}
-      <path d="M22 120 C40 112 80 128 100 118" stroke="#5A341D" stroke-width="3" fill="none" opacity=".5"/>
-      <g transform="translate(60 140)"><circle r="15" fill="#D9261C"/><circle r="12.6" fill="none" stroke="#fff" stroke-width=".9"/>
-        <path d="M-6.5 0 C-6.5 -6 6.5 -6 6.5 0 Z" fill="#fff"/><rect x="-7.2" y="1.5" width="14.4" height="2" rx="1" fill="#fff"/><rect x="-6.4" y="4.6" width="12.8" height="2" rx="1" fill="#fff"/></g>
-      <path d="M14 62 L26 188 Q60 196 94 188 L106 62 Z" fill="url(#sk-vidro)"/>
-      <ellipse cx="60" cy="62" rx="47" ry="9" fill="#D7CCBF"/>
-      <path d="M18 60 C18 30 36 18 60 18 C84 18 102 30 102 60 Z" fill="url(#sk-creme)"/>
-      ${pedacos}
-      <path d="M22 54 C30 50 38 56 46 52 C56 48 64 56 74 52 C84 48 92 54 98 52" stroke="#4A2C1A" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M10 62 C10 18 34 4 60 4 C86 4 110 18 110 62 Z" fill="#FFFFFF" opacity=".16" stroke="#FFFFFF" stroke-opacity=".7" stroke-width="1.6"/>
-      <path d="M24 44 C26 26 38 14 52 11" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".8"/>
-      <ellipse cx="60" cy="62" rx="50" ry="8" fill="none" stroke="#FFFFFF" stroke-opacity=".8" stroke-width="2"/>
-    </svg>`);
-  }
-  return shakeCache;
-}
-
-// Potinho de cheddar cremoso. viewBox 120 x 90.
-let cheddarCache;
-export function cheddarImage() {
-  if (!cheddarCache) {
-    cheddarCache = uri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" width="240" height="180"><defs>
-      <linearGradient id="ch-pote" x1="0" x2="1"><stop offset="0" stop-color="#E4E0DA"/><stop offset=".5" stop-color="#FFFFFF"/><stop offset="1" stop-color="#CFC9C1"/></linearGradient>
-      <radialGradient id="ch-molho" cx=".4" cy=".4" r=".7"><stop offset="0" stop-color="#FFD24A"/><stop offset="1" stop-color="#F0A81C"/></radialGradient>
-    </defs>
-      <ellipse cx="60" cy="84" rx="44" ry="5" fill="#000" opacity=".35"/>
-      <path d="M10 30 L20 80 Q60 90 100 80 L110 30 Z" fill="url(#ch-pote)"/>
-      <ellipse cx="60" cy="30" rx="50" ry="14" fill="#F2EFEA"/>
-      <ellipse cx="60" cy="31" rx="45" ry="11.5" fill="url(#ch-molho)"/>
-      <path d="M36 28 C46 22 62 34 76 27 C84 23 90 28 94 30" stroke="#FFE48A" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/>
-      <ellipse cx="46" cy="27" rx="7" ry="2.4" fill="#FFF6C8" opacity=".85"/>
-    </svg>`);
-  }
-  return cheddarCache;
 }
 
 // ---------------- Logo ----------------

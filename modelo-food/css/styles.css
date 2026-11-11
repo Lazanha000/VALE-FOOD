@@ -138,8 +138,8 @@ h1, h2, h3, h4 { text-wrap: balance; }
 .topo.is-solido { background: var(--branco); color: var(--tinta); box-shadow: 0 1px 0 var(--linha); }
 .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; margin-right: auto; }
 .marca-selo { flex: none; border-radius: 50%; }
-.marca-nome { font: 900 23px/1 var(--f-display); letter-spacing: .02em; }
-.marca-nome b { font-weight: 800; font-size: .58em; letter-spacing: .26em; color: var(--brasa); margin-left: 6px; vertical-align: .2em; }
+.marca-nome { font: 900 23px/1 var(--f-display); letter-spacing: .02em; white-space: nowrap; }
+.marca-nome b { font-weight: 800; font-size: .58em; letter-spacing: .26em; color: var(--brasa); margin-left: 1px; vertical-align: .2em; }
 .topo-nav { display: flex; gap: 4px; }
 .topo-nav a, .topo-carrinho {
   display: inline-flex; align-items: center; gap: 8px;
@@ -214,158 +214,6 @@ main.is-entrando > * { animation: entra .45s ease both; }
 }
 .link:hover { color: var(--brasa-escura); }
 .link--perigo { color: var(--erro); }
-
-/* ============================================================
-   EXPERIÊNCIA CINEMATOGRÁFICA
-   ============================================================ */
-.cine { position: relative; background: var(--branco); }
-.cine--rolagem .cine-trilho { position: relative; height: 640vh; height: 640svh; }
-/* celular: percurso curto, a abertura sai logo (no PC o trilho é maior) */
-@media (max-width: 759px) { .cine--rolagem .cine-trilho { height: 300vh; height: 300svh; } }
-.cine-palco {
-  position: sticky; top: 0;
-  height: 100vh; height: 100svh;
-  overflow: hidden;
-  isolation: isolate;
-  contain: layout paint;
-}
-/* grão com mistura de camadas pesa na rolagem do celular */
-@media (max-width: 759px) { .cine-fundo--escuro::after { display: none; } }
-.cine-caixa { will-change: transform; }
-.cine--estatico .cine-palco { position: relative; height: min(100svh, 860px); min-height: 600px; }
-.cine--estatico .cine-dica, .cine--estatico .cine-progresso { display: none; }
-
-.cine-fundo { position: absolute; inset: 0; z-index: 0; }
-.cine-fundo--claro { background: radial-gradient(120% 90% at 50% 70%, var(--branco) 0%, var(--branco) 55%, var(--cena-borda, #F6F2ED) 100%); }
-.cine-fundo--escuro {
-  opacity: 0;
-  background:
-    radial-gradient(55% 42% at 50% 60%, rgba(255, 168, 92, .16), rgba(255, 168, 92, 0) 70%),
-    linear-gradient(180deg, #0C0A09 0%, #12100E 48%, #1C1815 70%, #15120F 100%);
-}
-.cine-fundo--escuro::after {
-  content: ""; position: absolute; inset: 0; opacity: .5; mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* abertura: o mesmo degradê marrom da foto do lanche; some com a rolagem */
-.cine-fundo--marrom {
-  background:
-    radial-gradient(70% 90% at 50% 100%, #EBD3AD 0%, #D8B888 18%, #BC9A6A 34%, #8A6034 52%, #5A3B1F 68%, #2A1709 84%, #0B0703 100%);
-}
-.cine-palco[data-tom="escuro"] .cine-s1 { color: var(--fixo-claro); }
-.cine-palco[data-tom="escuro"] .cine-s1 .cine-sub { color: #E9DCCB; }
-/* a dica fica sobre a parte clara do degradê: texto marrom escuro */
-.cine-palco[data-tom="escuro"] .cine-dica { color: #3B2512; }
-.cine-palco[data-tom="escuro"] .cine-dica span { background: #3B2512; }
-
-.cine-texto { position: absolute; left: 0; right: 0; z-index: 10; text-align: center; padding-left: var(--g-esq); padding-right: var(--g-dir); pointer-events: none; }
-.cine-texto .btn-cta { pointer-events: auto; }
-.cine-s1 { top: calc(var(--topo-h) + 3vh); z-index: 1; }
-.cine-titulo {
-  margin: 0;
-  font: 900 clamp(46px, min(7.4vw, 13vh), 132px)/.86 var(--f-display);
-  letter-spacing: .005em;
-  text-transform: uppercase;
-}
-.cine-titulo em, .cine-s4 h2 em { font-style: normal; color: var(--brasa); }
-.cine-sub { margin: 14px auto 0; max-width: 34ch; font: 500 clamp(15px, 1.35vw, 19px)/1.4 var(--f-texto); color: var(--fumaca); }
-@media (max-width: 759px) {
-  .cine-titulo { font-size: clamp(44px, 14.5vw, 74px); }
-  .cine-s1 { top: calc(var(--topo-h) + 2vh); }
-}
-
-.cine-s2 { top: calc(var(--topo-h) + 4vh); right: auto; max-width: 30vw; text-align: left; padding-left: max(40px, 5vw); }
-.cine-s2 h2 { margin: 0; font: 900 clamp(34px, 3.6vw, 60px)/.9 var(--f-display); text-transform: uppercase; }
-.cine-olho { margin: 0 0 8px; font: 600 12px/1 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brasa-escura); }
-@media (max-width: 759px) { .cine-s2 { display: none; } }
-
-.cine-s3 { top: calc(var(--topo-h) + 3vh); color: var(--fixo-claro); }
-.cine-s3 h2 { margin: 0; font: 900 clamp(40px, min(6vw, 10vh), 92px)/.88 var(--f-display); text-transform: uppercase; }
-.cine-s3 p { margin: 10px 0 0; font: 500 clamp(15px, 1.3vw, 18px)/1.4 var(--f-texto); color: #CFC5BB; }
-
-.cine-s4 {
-  top: calc(var(--topo-h) + 3vh); bottom: max(5vh, calc(20px + env(safe-area-inset-bottom, 0px)));
-  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-  color: var(--fixo-claro);
-}
-.cine-s4 h2 { margin: 0; max-width: 22ch; font: 900 clamp(38px, min(5.6vw, 9.5vh), 96px)/.88 var(--f-display); text-transform: uppercase; transform: translateY(calc(var(--sobe, 0px) * -1)); }
-.btn-cta {
-  transform: translateY(var(--sobe, 0px));
-  display: inline-flex; align-items: center; gap: 12px;
-  min-height: 58px; padding: 0 30px;
-  border: 0; border-radius: 999px;
-  background: var(--brasa); color: var(--fixo-escuro);
-  font: 900 21px/1 var(--f-display); letter-spacing: .08em;
-  box-shadow: 0 10px 30px rgba(241, 90, 36, .35);
-  transition: background-color .2s, box-shadow .2s;
-}
-.btn-cta span { transition: transform .2s; }
-.btn-cta:hover { background: #FF6B33; box-shadow: 0 14px 40px rgba(241, 90, 36, .5); }
-.btn-cta:hover span { transform: translateX(4px); }
-.btn-cta:focus-visible { outline-color: var(--fixo-claro); }
-
-.cine-burger, .cine-camada, .cine-batatas, .cine-pote, .rotulo, .cine-sombra-burger, .cine-sombra-dentro, .cine-sombra-mesa {
-  position: absolute; left: 0; top: 0; will-change: transform;
-}
-.cine-burger { z-index: 7; transform-origin: 50% 50%; }
-.cine-camada { width: 100%; user-select: none; pointer-events: none; }
-.cine-batatas { z-index: 5; height: auto; pointer-events: none; }
-.cine-pote { z-index: 6; height: auto; pointer-events: none; } /* pote fica na frente das batatas */
-.cine-cheddar, .cine-shake { position: absolute; left: 0; top: 0; will-change: transform; height: auto; pointer-events: none; }
-.cine-cheddar { z-index: 6; }
-.cine-shake { z-index: 6; }
-.cine-caixa { position: absolute; left: 0; top: 0; overflow: visible; }
-.cine-caixa--fundo { z-index: 3; }
-.cine-caixa--frente { z-index: 8; }
-.cine-sombra-burger { z-index: 4; border-radius: 50%; background: radial-gradient(closest-side, rgba(58, 34, 14, .34), rgba(58, 34, 14, 0)); }
-.cine-sombra-dentro { z-index: 4; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, .7), rgba(0, 0, 0, 0)); }
-.cine-sombra-mesa { z-index: 2; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, .75), rgba(0, 0, 0, .35) 55%, rgba(0, 0, 0, 0)); }
-
-.cine-rotulos { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
-.rotulo { display: flex; align-items: center; gap: 10px; width: 236px; }
-.rotulo--e { flex-direction: row-reverse; text-align: right; }
-.rotulo-linha { flex: 0 0 42px; height: 1px; background: var(--tinta); position: relative; }
-.rotulo-linha::before { content: ""; position: absolute; top: -3px; left: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--brasa); }
-.rotulo--e .rotulo-linha::before { left: auto; right: -3px; }
-.rotulo-texto strong { display: block; font: 800 13px/1.15 var(--f-texto); letter-spacing: .08em; text-transform: uppercase; }
-.rotulo-texto span { display: block; margin-top: 3px; font: 400 12px/1.25 var(--f-mono); color: var(--fumaca); }
-@media (max-width: 759px) {
-  .rotulo { width: 32vw; gap: 6px; }
-  .rotulo-linha { flex-basis: 14px; }
-  .rotulo-texto strong { font-size: 10.5px; letter-spacing: .05em; }
-  .rotulo-texto span { display: none; } /* 8 camadas: no celular fica só o nome */
-}
-
-.cine-dica {
-  position: absolute; left: 0; right: 0; bottom: max(3vh, calc(14px + env(safe-area-inset-bottom, 0px))); z-index: 10;
-  margin: 0; text-align: center;
-  font: 600 11px/1 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--fumaca);
-}
-.cine-dica span { display: block; width: 1px; height: 34px; margin: 10px auto 0; background: var(--tinta); transform-origin: top; animation: desce 1.8s ease-in-out infinite; }
-@keyframes desce { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); transform-origin: top; } 51% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
-
-.cine-progresso {
-  position: absolute; z-index: 11;
-  right: max(22px, calc(env(safe-area-inset-right, 0px) + 12px)); top: 50%;
-  transform: translateY(-50%);
-  display: flex; flex-direction: column; gap: 6px;
-  color: var(--tinta); transition: color .3s;
-}
-.cine-palco[data-tom="escuro"] .cine-progresso { color: var(--fixo-claro); }
-.cine-progresso button {
-  position: relative; width: 44px; height: 30px; padding: 0; border: 0; background: none;
-  display: grid; place-items: center; color: inherit;
-}
-.cine-progresso button::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .35; transition: opacity .2s, transform .2s, background-color .2s; }
-.cine-progresso button[aria-current]::after { opacity: 1; background: var(--brasa); transform: scale(1.5); }
-.cine-progresso span {
-  position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
-  font: 600 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap;
-  opacity: 0; transition: opacity .2s; pointer-events: none;
-}
-.cine-progresso button:hover span, .cine-progresso button:focus-visible span, .cine-progresso button[aria-current] span { opacity: .8; }
-@media (max-width: 759px) { .cine-progresso { display: none; } }
 
 /* ============================================================
    CARDÁPIO
@@ -745,7 +593,6 @@ body.tem-barra .rodape { padding-bottom: 120px; }
   .wa-btn { height: 54px; min-width: 54px; padding: 0 13px; }
   .wa { transition: transform .3s ease, opacity .3s ease; }
   .wa.is-recolhido { transform: translateY(calc(100% + 30px)); opacity: 0; }
-  .cine-s4 { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ---------- Toast ---------- */

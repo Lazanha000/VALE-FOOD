@@ -15,7 +15,7 @@ import { situacaoLoja } from '../horario.js';
 import { avisar } from '../ui.js';
 import { ESTABS, estabPorId } from './dados.js';
 import { modoDemo } from '../services/api.js';
-import { buscarDoBanco, aplicarDoBanco, lerDoBanco, idLojaValido } from '../services/cardapio.js';
+import { buscarDoBanco, aplicarDoBanco, lerDoBanco, idLojaValido, fotoDoBanco } from '../services/cardapio.js';
 
 const CHAVE_LOJA = 'modelo:loja:v1';
 const PAGAMENTOS_BASE = structuredClone(CONFIG.pagamentos);
@@ -48,6 +48,7 @@ export function estabDoBanco(r) {
     cat: r.categoria,
     cidade: String(r.cidade || ''),
     descricao: String(r.descricao || ''),
+    logo: fotoDoBanco(r.logo, CONFIG.api?.supabaseUrl),
     nota: qtd ? r.avaliacoes_soma / qtd : 0,
     avaliacoes: qtd,
     fechadaAgora: r.aberta_manual === false,
@@ -60,7 +61,7 @@ export function estabDoBanco(r) {
   };
 }
 
-const COLUNAS_VITRINE = 'id,nome,nome_curto,sufixo,categoria,cidade,descricao,entrega_ativa,entrega_tempo,taxa_tipo,taxa_fixa,'
+const COLUNAS_VITRINE = 'id,nome,nome_curto,sufixo,categoria,cidade,descricao,logo,entrega_ativa,entrega_tempo,taxa_tipo,taxa_fixa,'
   + 'aberta_manual,avaliacoes_qtd,avaliacoes_soma,horarios(dia,abre,fecha)';
 
 // Lista de estabelecimentos aprovados. Sem banco: os exemplos. Erro de rede: lança (a página mostra o aviso).
@@ -80,8 +81,7 @@ function trocarCardapio(produtos, categorias) {
 }
 function marcaDa(e) {
   CONFIG.marca = { ...MARCA_BASE, nome: e.nome, nomeCurto: e.nomeCurto || e.nome, sufixo: e.sufixo || '', descricao: e.descricao,
-    local: `${e.cidade}, MG`, cinema: false };
-  CONFIG.privacidade = { ...CONFIG.privacidade, controlador: e.nome };
+    local: `${e.cidade}, MG` };
 }
 
 // Devolve true se entrou. Trocar de loja com itens no carrinho esvazia o carrinho.

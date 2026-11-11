@@ -117,7 +117,7 @@ export function qrSvg(texto, rotulo = 'QR Code do Pix') {
       });
     });
     const at = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    return `<span class="esqueleto" style="display:block;aspect-ratio:1;width:100%" data-qr-pendente="${at(texto)}" data-qr-rotulo="${at(rotulo)}"></span>`;
+    return `<span class="esqueleto esqueleto-qr" data-qr-pendente="${at(texto)}" data-qr-rotulo="${at(rotulo)}"></span>`;
   }
   const qr = qrcode(0, 'M');
   qr.addData(texto);

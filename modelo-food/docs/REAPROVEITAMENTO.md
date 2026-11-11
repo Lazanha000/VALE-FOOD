@@ -55,4 +55,4 @@ chamados, contato dos proprietários).
 - WhatsApp, chave Pix e e-mails de teste do `config.js` antigo.
 - Textos de privacidade (modelo): precisam de advogado.
 
-Documentos do site antigo: `docs-site-antigo/` (AUDITORIA, PENDENCIAS, COMO-CONFIGURAR).
+Os documentos e o SQL do site antigo foram apagados em 11/11/2026 (continuam no histórico do Git).

@@ -65,15 +65,18 @@ function ranking(lista, cat, cidade, busca) {
   return [...ok, ...novos];
 }
 
+// logo enviado pelo dono no painel (só endereço do Storage do projeto passa: fotoDoBanco)
+const logoDe = (e, lado) => (e.logo ? `<img class="mk-logo" src="${esc(e.logo)}" alt="" width="${lado}" height="${lado}" loading="lazy" decoding="async">` : '');
+
 function cartaoEstab(e) {
   const s = situacaoDe(e);
   const taxa = e.entrega?.taxa?.tipo === 'bairro' ? 'taxa por bairro' : `entrega ${brl(e.entrega?.taxa?.valor || 0)}`;
   const nota = e.avaliacoes >= MIN_AVALIACOES ? `⭐ ${e.nota.toFixed(1)} (${e.avaliacoes})` : 'Novo na plataforma';
-  return `<article class="mk-card"><div class="mk-linha"><div>
+  return `<article class="mk-card"><div class="mk-linha"><div class="mk-est">${logoDe(e, 56)}<div>
     <p class="mk-est-nome">${esc(e.nome)}</p>
     <p class="mk-est-meta">${esc(e.cidade)} · ${nota}${e.entrega?.ativo !== false ? ` · ${taxa} · ${esc(e.entrega?.tempo || '')}` : ' · só retirada'}</p>
     ${e.descricao ? `<p class="mk-est-meta">${esc(e.descricao)}</p>` : ''}
-    </div><div><span class="mk-tag ${s.aberto ? '' : 'x'}">${s.aberto ? 'Aberto' : 'Fechado'}</span>
+    </div></div><div><span class="mk-tag ${s.aberto ? '' : 'x'}">${s.aberto ? 'Aberto' : 'Fechado'}</span>
     <button class="btn btn-primario" type="button" data-loja="${esc(e.id)}">Ver cardápio</button></div></div>
   </article>`;
 }
@@ -98,9 +101,9 @@ export function paginaInicio(main) {
     const destaque = ranking(lista, '', estado.cidade, '').slice(0, 4);
     main.innerHTML = secao(`${cab('Araçuaí, Coronel Murta, Virgem da Lapa e Itaobim', 'O que você quer pedir hoje?')}
       ${avisoDemo()}
-      <div class="mk-lojabar"><label class="mk-l" for="mk-busca" style="margin:0">Buscar</label>
-        <input type="text" id="mk-busca" placeholder="Nome do estabelecimento" style="max-width:280px" value="${esc(estado.busca)}">
-        <select id="mk-cidade" aria-label="Cidade" style="max-width:200px"><option value="">Todas as cidades</option>${CIDADES.map((c) => `<option ${c === estado.cidade ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+      <div class="mk-lojabar"><label class="mk-l mk-sem-margem" for="mk-busca">Buscar</label>
+        <input type="text" id="mk-busca" placeholder="Nome do estabelecimento" class="mk-max-280" value="${esc(estado.busca)}">
+        <select id="mk-cidade" aria-label="Cidade" class="mk-max-200"><option value="">Todas as cidades</option>${CIDADES.map((c) => `<option ${c === estado.cidade ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
       <div class="mk-grade" id="mk-cats">${CATEGORIAS_MKT.map((c) => c.embreve
       ? `<div class="mk-cat soon" aria-disabled="true"><span class="ic">${c.icone}</span><b>${esc(c.nome)}</b><div><span class="mk-tag w">Em breve</span></div></div>`
       : `<button class="mk-cat" type="button" data-cat="${c.id}"><span class="ic">${c.icone}</span><b>${esc(c.nome)}</b></button>`).join('')}</div>
@@ -156,11 +159,11 @@ export function paginaSuporte(main, estadoRota) {
     ${avisoDemo()}
     <p class="mk-muted">Conte o que aconteceu. Nossa equipe fala com você e com o estabelecimento.</p>
     <form class="mk-card" id="mk-sup" novalidate>
-      <fieldset style="border:0;padding:0;margin:0"><legend class="mk-l">O que aconteceu? *</legend>
+      <fieldset class="mk-fieldset"><legend class="mk-l">O que aconteceu? *</legend>
         ${MOTIVOS.map(([id, t]) => `<label class="mk-chk"><input type="radio" name="motivo" value="${id}" ${id === inicial ? 'checked' : ''}> <span>${esc(t)}</span></label>`).join('')}</fieldset>
       ${pedidos.length ? `<label class="mk-l" for="mk-ped">Pedido</label><select id="mk-ped">${pedidos.map((p) => `<option value="${esc(p.codigo)}">${esc(p.codigo)}</option>`).join('')}<option value="">Não é sobre um pedido</option></select>` : ''}
       <label class="mk-l" for="mk-tel">Seu telefone com DDD *</label><input type="tel" id="mk-tel" inputmode="tel" autocomplete="tel-national" placeholder="(33) 98765-4321">
-      <label class="mk-l" for="mk-txt">Detalhes</label><textarea id="mk-txt" rows="3" maxlength="1000" style="width:100%"></textarea>
+      <label class="mk-l" for="mk-txt">Detalhes</label><textarea id="mk-txt" class="mk-largo" rows="3" maxlength="1000"></textarea>
       <p class="mk-muted">Usamos seu telefone só para responder a este pedido de ajuda. Veja a <a href="#privacidade">política de privacidade</a>.</p>
       <p class="aviso aviso--erro" id="mk-sup-erro" role="alert" hidden></p>
       <button class="btn btn-primario" type="submit">Enviar</button>
@@ -200,8 +203,8 @@ export function abrirAvaliacao(pedido) {
   let n = 0;
   const m = modal(`<h3>Como foi o seu pedido?</h3><p class="mk-muted">${esc(pedido?.codigo ? `Pedido ${pedido.codigo}` : 'Pedido')} · ${esc(pedido?.estabelecimento?.nome || lojaAtual()?.nome || CONFIG.marca.nome)}</p>
     <div class="mk-estrelas" id="mk-st" role="group" aria-label="Nota de 0 a 5"></div><p class="mk-muted" id="mk-n">0 de 5</p>
-    <label class="mk-l" for="mk-com" style="display:block;font-weight:600;font-size:13px">Comentário (opcional)</label>
-    <textarea id="mk-com" rows="3" style="width:100%" maxlength="500"></textarea>
+    <label class="mk-l mk-l-solto" for="mk-com">Comentário (opcional)</label>
+    <textarea id="mk-com" class="mk-largo" rows="3" maxlength="500"></textarea>
     <p class="aviso aviso--erro" id="mk-av-erro" role="alert" hidden></p>
     <div class="mk-acoes"><button class="btn btn-sec" type="button" data-x>Agora não</button><button class="btn btn-primario" type="button" data-ok>Enviar avaliação</button></div>`);
   const pintar = () => {
@@ -249,6 +252,6 @@ export function barraDaLoja() {
   if (!e) return null;
   const d = document.createElement('div');
   d.className = 'wrap';
-  d.innerHTML = `<div class="mk-lojabar" style="margin-top:calc(var(--topo-h) + 8px)"><span><strong>${esc(e.nome)}</strong> · ${esc(e.cidade)}</span><span class="mk-acoes" style="margin:0"><a class="btn btn-sec" href="#inicio">Trocar de estabelecimento</a></span></div>`;
+  d.innerHTML = `<div class="mk-lojabar mk-lojabar-topo"><span class="mk-est">${logoDe(e, 40)}<span><strong>${esc(e.nome)}</strong> · ${esc(e.cidade)}</span></span><span class="mk-acoes mk-sem-margem"><a class="btn btn-sec" href="#inicio">Trocar de estabelecimento</a></span></div>`;
   return d;
 }

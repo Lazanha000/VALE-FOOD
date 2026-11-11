@@ -10,7 +10,7 @@
 //   * só o dono (equipe.papel = 'dono'): preços do cardápio e das opções,
 //     horários, entrega, retirada, taxa e bairros (aba "Loja").
 // Tudo é gravado no banco, com o token de quem entrou: o que cada um pode
-// fazer é decidido pela RLS (supabase/schema.sql), não por este arquivo
+// fazer é decidido pela RLS (supabase/plataforma.sql), não por este arquivo
 // (esconder a aba "Loja" da cozinha é só para não confundir).
 // Quem é da tabela "admins" vê também a aba Administração e pode abrir qualquer loja.
 // ============================================================
@@ -29,6 +29,12 @@ import { prepararFoto } from './fotos.js';
 import { fotoDoBanco, idLojaValido } from '../js/services/cardapio.js';
 import { validarPix } from '../js/pix.js';
 import { telaCadastroLoja, telaCriarConta, telaEsqueciSenha, telaNovaSenha, montarAdmin, linkDaLoja, voltouDaConfirmacao, voltouDaRecuperacao } from './plataforma.js';
+
+// dentro de um <iframe> de outro site (golpe de clique escondido): não mostra o painel
+if (window.top !== window.self) {
+  document.body.textContent = 'Abra o painel direto no navegador.';
+  throw new Error('painel dentro de iframe');
+}
 
 const $ = (s, raiz = document) => raiz.querySelector(s);
 const main = $('#pn-conteudo');
@@ -155,7 +161,7 @@ function telaSemBanco() {
   main.innerHTML = `<section class="pn-cartao pn-login">
     <h1>Painel do restaurante</h1>
     <p class="aviso aviso--alerta">O painel precisa do banco de pedidos ligado. Siga o passo a passo em
-    <code>supabase/LEIAME.md</code> e preencha <code>api</code> em <code>js/config.js</code>.</p>
+    <code>supabase/LEIAME-PLATAFORMA.md</code> e preencha <code>api</code> em <code>js/config.js</code>.</p>
     <p><a class="link" href="./">Voltar para o site</a></p>
   </section>`;
 }
@@ -1037,6 +1043,12 @@ function mostrarDados() {
   n.innerHTML = `<form class="pn-cartao pn-form" id="pn-form-dados" novalidate>
     <h2>Dados da loja e pagamento</h2>
     <p class="pn-dica">O pagamento é feito direto para você: Pix na sua chave, dinheiro ou maquininha na entrega.</p>
+    <div class="pn-foto-linha">
+      <img class="pn-foto" data-previa alt="" ${urlFoto(l.logo) ? `src="${esc(urlFoto(l.logo))}"` : 'hidden'}>
+      <div class="campo"><label for="pn-logo">${l.logo ? 'Trocar logo' : 'Logo da loja'} <span class="opcional">opcional</span></label>
+        <input id="pn-logo" name="foto" type="file" accept="image/*">
+        <p class="campo-dica">Quadrado, aparece na lista de estabelecimentos e no cardápio.</p></div>
+    </div>
     ${campoTexto('descricao', 'Descrição curta', l.descricao || '', { max: 160, dica: 'Aparece na lista de estabelecimentos.' })}
     <div class="linha-campos">
       ${campoTexto('telefone_publico', 'Telefone da loja (com DDD)', tel(l.telefone_publico), { max: 20 })}
@@ -1083,11 +1095,21 @@ async function salvarDados(form) {
   const botao = $('button[type=submit]', form);
   botao.disabled = true;
   try {
+    const arquivo = form.elements.foto.files?.[0];
+    const foto = arquivo ? await prepararFoto(arquivo, 256) : null;
+    const antigo = estado.loja?.logo;
+    let logo;
+    if (foto) {
+      logo = `${estado.estab}/${caminhoFotoNova('logo', foto.ext)}`;
+      await cliente.enviarArquivo(`produtos/${logo}`, foto.blob);
+    }
     const r = await cliente.rest(`estabelecimentos?id=eq.${estado.estab}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: {
       descricao: v('descricao'), telefone_publico: telefone, whatsapp: zap ? `55${zap}` : null, retirada_local: v('retirada_local'),
-      pagamentos, pix_chave: pix.chave, pix_tipo: pix.tipo, pix_nome: pix.nome, pix_cidade: pix.cidade } });
+      pagamentos, pix_chave: pix.chave, pix_tipo: pix.tipo, pix_nome: pix.nome, pix_cidade: pix.cidade, ...(logo ? { logo } : {}) } });
     if (!Array.isArray(r) || r.length !== 1) throw new Error('Sem permissão para mudar os dados da loja.');
     estado.loja = r[0];
+    if (logo && fotoDoStorage(antigo)) cliente.apagarArquivo(`produtos/${antigo}`).catch(() => {});
+    if (logo) mostrarDados();
     avisar('Dados da loja salvos.');
   } catch (e) {
     if (e.status === 401) return;
@@ -1339,7 +1361,7 @@ main.addEventListener('click', (ev) => {
 main.addEventListener('change', (ev) => {
   if (ev.target.matches('[data-preco]')) { salvarPreco(ev.target); return; }
   // prévia da foto escolhida (ainda não enviada)
-  if (ev.target.name === 'foto' && ev.target.closest('[data-produto-form]')) {
+  if (ev.target.name === 'foto' && ev.target.closest('[data-produto-form], #pn-form-dados')) {
     const img = $('[data-previa]', ev.target.form);
     const arq = ev.target.files?.[0];
     if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);

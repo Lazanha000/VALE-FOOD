@@ -3,6 +3,22 @@
 Cobre o site (`index.html`), o painel (`admin.html`) e o banco (`supabase/plataforma.sql`).
 Testes feitos num "Supabase local" (Postgres + PostgREST no Docker). O Supabase de verdade ainda não foi testado de ponta a ponta.
 
+## 00. Terceira rodada (11/11/2026, noite): revisão final
+
+Medido com Lighthouse (celular) e testado num Chromium em 15 telas do site e no painel.
+
+| Área | Antes | Depois |
+|---|---|---|
+| Desempenho (Lighthouse, celular) | 89 | 99 (painel 95) |
+| Acessibilidade / boas práticas / SEO | 100 / 100 / 100, com 1 alerta de nome do logo | 100 / 100 / 100, sem alertas |
+| Dados da empresa | O rodapé tinha o lugar, mas o código sempre escondia; e entrar numa loja trocava a razão social da plataforma pelo nome da loja nas páginas legais | Rodapé mostra razão social, CNPJ, endereço e e-mail sozinho quando o CNPJ for preenchido; páginas legais sempre com os dados da plataforma |
+| Logo da loja | Coluna existia no banco, sem uso | Dono envia no painel (aba Loja); aparece na vitrine e no topo do cardápio |
+| Segurança | Página aceitava estilo inline (`unsafe-inline`); painel podia ser aberto dentro de outro site | Estilo só dos arquivos do site; painel se recusa a abrir dentro de iframe; `_headers` pronto para a hospedagem nova |
+| Prévia do link (WhatsApp) | Sem imagem | Logo da plataforma como imagem da prévia |
+| Supabase grátis pausando | Manual | Tarefa no GitHub lê a vitrine a cada 2 dias (`.github/workflows/manter-supabase-ativo.yml`) |
+| Código morto | Animação de abertura: 120 linhas de JS, 150 de CSS, 19 fotos | Removido. CSS 49 KB → 41 KB |
+| Arquivos antigos | SQL, testes e notas do site de uma loja só; cópia do site original | Apagados (seguem no histórico do Git) |
+
 ## 0. Segunda rodada (11/11/2026, noite): fluxo completo testado
 
 Percorri no navegador, com o "Supabase local", o caminho inteiro: vitrine, loja, produto com opções, carrinho, pedido com entrega e Pix, tela de acompanhamento e painel do restaurante.
@@ -70,11 +86,8 @@ Testes: 34 testes do banco ok (1 novo, da limpeza automática). O service worker
 | Teste de ponta a ponta no Supabase real | Tempo real, envio de fotos e e-mail só existem lá | Pequeno, depois dos itens 1 e 2 acima |
 | Verificação em duas etapas para a conta de administração | Essa conta vê CPF, CNPJ e telefones de todos | Médio. Não fiz porque não dá para testar sem a sua conta e um erro trancaria você para fora |
 | Hospedagem fora do GitHub Pages | O GitHub Pages não permite uso comercial | Pequeno (Cloudflare Pages), precisa de conta sua |
-| Supabase grátis pausa sem uso | Projeto parado cerca de 7 dias é pausado e o site para. Confirme a regra atual no site do Supabase | Plano pago ou acesso automático |
 | Aviso de pedido novo com o navegador fechado | Com o navegador aberto já há som e aviso do sistema; fechado, nada chega | Grande (notificação push, precisa de servidor) |
-| Logo da loja na vitrine | Visual | Pequeno |
 | Conta de cliente | Histórico de pedidos em vários aparelhos | Grande e custa por SMS |
-| Testes antigos (`testar-banco`, `testar-painel`, `testar-site`) | São do site de uma loja só e não rodam mais | Apagar ou reescrever |
 
 ## 5. Leis consideradas
 

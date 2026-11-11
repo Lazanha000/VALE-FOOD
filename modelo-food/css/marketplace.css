@@ -72,3 +72,17 @@
 .lista-docs li{padding:12px 0;border-bottom:1px solid var(--linha,#ddd)}
 /* etiqueta "Aberto" no tema escuro: fundo escuro e texto claro (contraste 4,5:1 ou mais) */
 :root[data-tema="escuro"] .mk-tag:not(.x):not(.w){background:#173a27;color:#8fe0b0}
+
+/* logo da loja (enviado no painel) */
+.mk-est{display:flex;gap:12px;align-items:center;min-width:0}
+.mk-logo{flex:none;border-radius:12px;object-fit:cover;border:1px solid var(--linha);background:var(--papel)}
+.mk-abrindo{margin-top:calc(var(--topo-h) + 24px)}
+.mk-lojabar-topo{margin-top:calc(var(--topo-h) + 8px)}
+.mk label.mk-l.mk-sem-margem{margin:0}
+.mk label.mk-l.mk-l-solto,.mk-l-solto{display:block;font-weight:600;font-size:13px}
+.mk-max-280{max-width:280px}
+.mk-max-200{max-width:200px}
+.mk-fieldset{border:0;padding:0;margin:0}
+.mk-largo{width:100%}
+.esqueleto.esqueleto-qr{display:block;aspect-ratio:1;width:100%;height:auto}
+.mk-acoes.mk-sem-margem{margin:0}

@@ -58,7 +58,7 @@ export function instalarReservaDeImagens() {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || img.src.startsWith('data:')) return;
     if (img.dataset.foto) { tentarDeNovo(img); return; }
-    if (img.dataset.fallback && !img.closest('.cine-palco') && !tentarDeNovo(img)) {
+    if (img.dataset.fallback && !tentarDeNovo(img)) {
       img.classList.remove('is-foto');
       img.src = img.dataset.fallback;
     }

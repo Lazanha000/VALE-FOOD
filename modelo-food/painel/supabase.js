@@ -4,7 +4,7 @@
 // * login por e-mail e senha:   POST /auth/v1/token?grant_type=password
 // * renovar a sessão:           POST /auth/v1/token?grant_type=refresh_token
 // * ler e gravar nas tabelas:   /rest/v1/... com o token da pessoa logada
-//   (quem decide o que ela pode fazer é a RLS do banco: supabase/schema.sql)
+//   (quem decide o que ela pode fazer é a RLS do banco: supabase/plataforma.sql)
 // * pedidos em tempo real:      WebSocket da Realtime (protocolo Phoenix)
 //
 // A CSP do admin.html só aceita script do próprio site: por isso não usamos o

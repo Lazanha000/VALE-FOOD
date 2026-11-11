@@ -1,0 +1,16 @@
+# Cabeçalhos de segurança para Cloudflare Pages ou Netlify (o GitHub Pages ignora este arquivo).
+# A pasta publicada deve ser esta (modelo-food). As políticas de conteúdo (CSP) já estão nas páginas.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Strict-Transport-Security: max-age=31536000
+  X-Frame-Options: SAMEORIGIN
+
+/admin.html
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+
+/sw.js
+  Cache-Control: no-cache

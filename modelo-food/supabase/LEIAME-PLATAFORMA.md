@@ -11,7 +11,6 @@ Essa chave pode ficar no site. A chave *secret* / *service_role* nunca vai para 
 3. O resultado deve ser "Success. No rows returned".
 
 Pode rodar de novo depois, para atualizar as regras: não apaga dados. **Rode de novo sempre que o arquivo mudar** (a última mudança foi em 11/11/2026, à noite: CEP opcional e limpeza automática de dados antigos).
-**Não rode o `schema.sql` nem o `instalar.sql` neste projeto.** Eles são do site antigo, de uma loja só.
 
 ## 2. Virar administrador
 
@@ -91,7 +90,6 @@ São 32 testes de permissão, pedido, avaliação, suporte e suspensão.
 
 Para testar o site e o painel no navegador, com um "Supabase local" (PostgREST no Docker), veja as instruções no começo de `supabase/testes/supabase-local.mjs`.
 
-Os arquivos `schema.sql`, `instalar.sql`, `cardapio.sql`, `gerar-cardapio.mjs`, `virar-dono.sql`, `LEIAME.md` e os testes `testar-banco.mjs`, `testar-painel.mjs` e `testar-site.mjs` são do site antigo, de uma loja só. Eles não servem para esta plataforma.
 
 ## Ainda falta
 
