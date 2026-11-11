@@ -252,6 +252,9 @@ create table if not exists public.chamados (
   atualizado_em timestamptz not null default now()
 );
 create index if not exists chamados_situacao on public.chamados (situacao, criado_em desc);
+-- motivo 'dados' = pedido do titular sobre os próprios dados (LGPD, art. 18): acesso, correção ou exclusão
+alter table public.chamados drop constraint if exists chamados_motivo_check;
+alter table public.chamados add constraint chamados_motivo_check check (motivo in ('nao_entregue', 'errado', 'demorando', 'outro', 'dados'));
 
 -- ---------- MENSALIDADES (controle da administração; o pagamento é feito por fora) ----------
 create table if not exists public.mensalidades (
@@ -733,7 +736,7 @@ create or replace function public.abrir_chamado(motivo text, descricao text, tel
 language plpgsql volatile security definer set search_path = '' as $$
 declare pid bigint; v_estab text; v_tel text; v_ip text; v_id bigint;
 begin
-  if motivo is null or motivo not in ('nao_entregue', 'errado', 'demorando', 'outro') then raise exception 'Escolha o motivo.'; end if;
+  if motivo is null or motivo not in ('nao_entregue', 'errado', 'demorando', 'outro', 'dados') then raise exception 'Escolha o motivo.'; end if;
   v_tel := public._telefone(telefone);
   if codigo is not null and token is not null then
     pid := public._pedido_do_link(codigo, token);
@@ -751,6 +754,28 @@ begin
   values (pid, v_estab, motivo, public._texto(to_jsonb(coalesce(descricao, '')), 'descrição', 1000), v_tel, v_ip)
   returning id into v_id;
   return jsonb_build_object('ok', true, 'protocolo', v_id);
+end;
+$$;
+
+-- LGPD (art. 18, VI): apaga os dados pessoais dos pedidos JÁ ENCERRADOS de um telefone.
+-- Ficam só itens e valores (sem nome, telefone, e-mail, endereço e observações), para o caixa da loja.
+-- Pedido em andamento não muda (a loja ainda precisa entregar). Só a administração chama.
+create or replace function public.anonimizar_cliente(telefone text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare v_tel text; n_ped integer; n_cham integer;
+begin
+  if not public.eh_admin() then raise exception 'Só a administração pode fazer isso.' using errcode = '42501'; end if;
+  v_tel := public._telefone(telefone);
+  if v_tel is null then raise exception 'Telefone inválido.'; end if;
+  update public.pedidos p set cliente_nome = 'Dados removidos', cliente_telefone = '', cliente_email = null, entrega = null, obs = ''
+  where p.cliente_telefone = v_tel and p.status in ('entregue', 'cancelado');
+  get diagnostics n_ped = row_count;
+  update public.pedido_itens i set obs = '' where i.obs <> '' and i.pedido_id in (select p.id from public.pedidos p where p.cliente_nome = 'Dados removidos');
+  update public.avaliacoes a set comentario = '' where a.comentario <> '' and a.pedido_id in (select p.id from public.pedidos p where p.cliente_nome = 'Dados removidos');
+  update public.chamados c set telefone = '0000000000', descricao = '' where c.telefone = v_tel and c.situacao = 'resolvido';
+  get diagnostics n_cham = row_count;
+  return jsonb_build_object('pedidos', n_ped, 'chamados', n_cham,
+    'em_andamento', (select count(*) from public.pedidos p where p.cliente_telefone = v_tel));
 end;
 $$;
 
@@ -985,8 +1010,10 @@ begin
   if current_user <> 'authenticated' or public.eh_admin() then return new; end if;
   if new.id is distinct from old.id or new.situacao is distinct from old.situacao
      or new.avaliacoes_qtd is distinct from old.avaliacoes_qtd or new.avaliacoes_soma is distinct from old.avaliacoes_soma
-     or new.criado_em is distinct from old.criado_em then
-    raise exception 'Só a administração muda isso.' using errcode = '42501';
+     or new.criado_em is distinct from old.criado_em
+     -- nome, categoria e cidade foram conferidos na aprovação: trocar depois permitiria se passar por outra loja
+     or new.nome is distinct from old.nome or new.categoria is distinct from old.categoria or new.cidade is distinct from old.cidade then
+    raise exception 'Só a administração muda isso. Peça pelo Suporte.' using errcode = '42501';
   end if;
   if not public.eh_dono(old.id)
      and (to_jsonb(new) - 'aberta_manual' - 'atualizado_em') is distinct from (to_jsonb(old) - 'aberta_manual' - 'atualizado_em') then
@@ -1146,7 +1173,7 @@ grant execute on function public.eh_publico(text), public.eh_equipe(text), publi
 grant execute on function public.cadastrar_estabelecimento(jsonb), public.definir_situacao(text, text, text),
   public.adicionar_equipe(text, text, text, text), public.remover_equipe(text, uuid),
   public.salvar_horarios(text, jsonb), public.salvar_entrega(text, jsonb),
-  public.resumo_vendas(timestamptz, timestamptz, text) to authenticated;
+  public.resumo_vendas(timestamptz, timestamptz, text), public.anonimizar_cliente(text) to authenticated;
 
 -- pedidos em tempo real para o painel (a Realtime respeita a RLS acima)
 do $$

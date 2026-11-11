@@ -3,20 +3,19 @@
 import { CONFIG } from './config.js';
 import { rota, iniciar } from './router.js';
 import { carrinho } from './store.js';
-import { montarCinema } from './scene.js';
 import { montarCardapio } from './pages/menu.js';
 import { paginaCarrinho } from './pages/cart.js';
 import { paginaFinalizar } from './pages/checkout.js';
 import { paginaPedido } from './pages/tracking.js';
-import { paginaPrivacidade } from './pages/privacy.js';
 import { montarWhatsapp, contextoWhatsapp } from './whatsapp.js';
 import { atualizarContador, instalarReservaDeImagens, avisar } from './ui.js';
-import { movimentoReduzido, esc, CHAVES } from './utils.js';
+import { esc, CHAVES } from './utils.js';
 import { resumoHorario, situacaoLoja } from './horario.js';
 import { conferirConfig } from './delivery.js';
 import { PLATAFORMA } from './marketplace/dados.js';
 import { entrarNaLoja, lojaGuardada, lojaAtual } from './marketplace/loja.js';
-import { paginaInicio, paginaLista, paginaSuporte, paginaTermos, barraDaLoja } from './marketplace/paginas.js';
+import { paginaInicio, paginaLista, paginaSuporte, barraDaLoja } from './marketplace/paginas.js';
+import { paginaPrivacidade, paginaTermos, paginaTermosUso, paginaReembolso, paginaCookies, paginaAdesao, avisoArmazenamento } from './marketplace/legal.js';
 
 document.documentElement.lang = 'pt-BR';
 // Cabeçalho e rodapé mostram a PLATAFORMA (Modelo Food); o nome do estabelecimento aparece nas páginas dele.
@@ -56,6 +55,10 @@ const TITULOS = {
   privacidade: () => `Política de privacidade · ${PLATAFORMA.nome}`,
   suporte: () => `Suporte · ${PLATAFORMA.nome}`,
   termos: () => `Termos e políticas · ${PLATAFORMA.nome}`,
+  'termos-uso': () => `Termos de uso · ${PLATAFORMA.nome}`,
+  reembolso: () => `Cancelamento e reembolso · ${PLATAFORMA.nome}`,
+  cookies: () => `Armazenamento no aparelho · ${PLATAFORMA.nome}`,
+  adesao: () => `Termo de adesão · ${PLATAFORMA.nome}`,
   404: () => `Página não encontrada · ${PLATAFORMA.nome}`,
 };
 const tituloDe = (chave) => (TITULOS[chave] ? TITULOS[chave]() : PLATAFORMA.nome);
@@ -65,50 +68,16 @@ const guardada = lojaGuardada();
 if (guardada) { await entrarNaLoja(guardada).catch(() => false); carrinho.reconferir(); }
 const PRECISAM_DE_LOJA = ['loja', 'cardapio', 'carrinho', 'finalizar'];
 
-function rolarSuave(alvo) {
-  const y = window.scrollY + alvo.getBoundingClientRect().top - topo.offsetHeight + 1;
-  window.scrollTo({ top: y, behavior: movimentoReduzido() ? 'auto' : 'smooth' });
-}
-
 // ---- Rotas ----
-function paginaLojaCinema(m) {
-  let cardapio;
-  const cine = montarCinema(m, {
-    aoCta: () => {
-      rolarSuave(cardapio.secao);
-      setTimeout(() => cardapio.secao.querySelector('#cardapio-h').focus({ preventScroll: true }), 600);
-    },
-  });
-  cardapio = montarCardapio(m);
-  const sec = m.querySelector('.cine');
-  // cabeçalho: transparente sobre as cenas, sólido no cardápio
-  const estatico = sec.classList.contains('cine--estatico');
-  const aoRolar = () => topo.classList.toggle('is-solido', estatico || sec.getBoundingClientRect().bottom <= topo.offsetHeight + 1);
-  const aoTom = (e) => {
-    topo.dataset.tom = e.detail;
-    document.body.dataset.tom = e.detail;
-  };
-  sec.addEventListener('tom', aoTom);
-  // a cena já começou escura (fundo marrom): aplica o tom atual no cabeçalho
-  const tomInicial = sec.querySelector('.cine-palco')?.dataset.tom;
-  if (tomInicial && !estatico) aoTom({ detail: tomInicial });
-  window.addEventListener('scroll', aoRolar, { passive: true });
-  aoRolar();
-  return {
-    destruir() {
-      cine.destruir();
-      cardapio.destruir();
-      window.removeEventListener('scroll', aoRolar);
-      delete topo.dataset.tom;
-      delete document.body.dataset.tom;
-    },
-  };
-}
 rota('inicio', (m) => paginaInicio(m));
 rota('lista', (m) => paginaLista(m));
-rota('loja', (m) => (CONFIG.marca.cinema ? paginaLojaCinema(m) : comBarra(m, () => montarCardapio(m, { pagina: true }))));
-rota('suporte', (m) => paginaSuporte(m));
+rota('loja', (m) => comBarra(m, () => montarCardapio(m, { pagina: true })));
+rota('suporte', (m, estado) => paginaSuporte(m, estado));
 rota('termos', (m) => paginaTermos(m));
+rota('termos-uso', (m) => paginaTermosUso(m));
+rota('reembolso', (m) => paginaReembolso(m));
+rota('cookies', (m) => paginaCookies(m));
+rota('adesao', (m) => paginaAdesao(m));
 function comBarra(m, desenhar) {
   const r = desenhar();
   const b = barraDaLoja();
@@ -152,7 +121,7 @@ iniciar((chave, render, estado) => {
   }
   main.innerHTML = '';
   document.body.dataset.pagina = chave;
-  topo.classList.toggle('is-solido', !(chave === 'loja' && CONFIG.marca.cinema));
+  topo.classList.add('is-solido');
   document.title = tituloDe(chave);
   document.querySelectorAll('.topo-nav a, .topo-carrinho').forEach((a) => {
     const alvo = a.getAttribute('href').slice(1);
@@ -166,7 +135,7 @@ iniciar((chave, render, estado) => {
   void main.offsetWidth;
   main.classList.add('is-entrando');
   // foco no título para leitores de tela (menos na abertura do site)
-  if (!(chave === 'loja' && CONFIG.marca.cinema) && iniciado) main.querySelector('h1')?.focus({ preventScroll: true });
+  if (iniciado) main.querySelector('h1')?.focus({ preventScroll: true });
   iniciado = true;
   return pagina;
 });
@@ -207,6 +176,7 @@ setInterval(atualizarStatusLoja, 30000);
 conferirConfig().forEach((e) => console.warn('[config]', e));
 
 montarWhatsapp();
+avisoArmazenamento();
 instalarReservaDeImagens();
 document.getElementById('ano').textContent = new Date().getFullYear();
 

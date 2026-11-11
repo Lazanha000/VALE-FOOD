@@ -7,7 +7,7 @@
 // dividido por endereço (lazanha000.github.io), não por pasta: cada cliente apaga só
 // os caches com o próprio prefixo, nunca os de outro site publicado no mesmo endereço.
 const PREFIXO = 'modelo-';
-const VERSAO = PREFIXO + 'v2';
+const VERSAO = PREFIXO + 'v3';
 const ESPERA_MS = 4000;
 const BASE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
@@ -15,11 +15,12 @@ const BASE = [
   'assets/fonts/archivo-latin-wght-normal.woff2', 'assets/fonts/big-shoulders-display-latin-700-normal.woff2',
   'assets/fonts/big-shoulders-display-latin-800-normal.woff2', 'assets/fonts/big-shoulders-display-latin-900-normal.woff2',
   'assets/fonts/ibm-plex-mono-latin-400-normal.woff2', 'assets/fonts/ibm-plex-mono-latin-600-normal.woff2',
-  'js/main.js', 'js/ajustar.js', 'js/ajustes.js', 'js/art.js', 'js/box.js', 'js/antifraude.js', 'js/comanda.js', 'js/config.js',
+  'js/main.js', 'js/ajustar.js', 'js/ajustes.js', 'js/art.js', 'js/antifraude.js', 'js/comanda.js', 'js/config.js',
   'js/delivery.js', 'js/horario.js', 'js/mensagem.js', 'js/pix.js', 'js/products.js',
-  'js/router.js', 'js/scene.js', 'js/store.js', 'js/ui.js', 'js/utils.js', 'js/whatsapp.js',
-  'js/pages/cart.js', 'js/pages/checkout.js', 'js/pages/menu.js', 'js/pages/privacy.js',
+  'js/router.js', 'js/store.js', 'js/ui.js', 'js/utils.js', 'js/whatsapp.js',
+  'js/pages/cart.js', 'js/pages/checkout.js', 'js/pages/menu.js',
   'js/pages/product.js', 'js/pages/tracking.js', 'js/services/api.js', 'js/services/cardapio.js', 'js/vendor/qrcode.js',
+  'css/marketplace.css', 'js/marketplace/dados.js', 'js/marketplace/loja.js', 'js/marketplace/paginas.js', 'js/marketplace/legal.js',
 ];
 
 self.addEventListener('install', (e) => {

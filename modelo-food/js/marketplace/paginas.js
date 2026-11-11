@@ -21,6 +21,7 @@ const avisoDemo = () => (demo() ? '<div class="mk-dev">Demonstração: estabelec
 // ---------- modal simples ----------
 export function modal(html, aoFechar) {
   fecharModal();
+  focoAntes = document.activeElement;
   const m = document.createElement('div');
   m.className = 'mk-modal';
   m.id = 'mk-modal';
@@ -32,7 +33,26 @@ export function modal(html, aoFechar) {
   m.querySelector('button, textarea, input, a')?.focus();
   return m;
 }
-export const fecharModal = () => document.getElementById('mk-modal')?.remove();
+let focoAntes = null;
+export const fecharModal = () => {
+  const m = document.getElementById('mk-modal');
+  if (!m) return;
+  m.remove();
+  if (focoAntes?.isConnected) focoAntes.focus();
+  focoAntes = null;
+};
+// teclado: Esc fecha; Tab fica dentro do quadro
+document.addEventListener('keydown', (ev) => {
+  const m = document.getElementById('mk-modal');
+  if (!m) return;
+  if (ev.key === 'Escape') { fecharModal(); return; }
+  if (ev.key !== 'Tab') return;
+  const focaveis = [...m.querySelectorAll('button, a[href], input, textarea, select')].filter((x) => !x.disabled);
+  if (!focaveis.length) return;
+  const [primeiro, ultimo] = [focaveis[0], focaveis.at(-1)];
+  if (ev.shiftKey && document.activeElement === primeiro) { ev.preventDefault(); ultimo.focus(); }
+  else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primeiro.focus(); }
+});
 const aviso = (t) => modal(`<p>${esc(t)}</p><div class="mk-acoes"><button class="btn btn-primario" data-fechar type="button">OK</button></div>`)
   .querySelector('[data-fechar]').addEventListener('click', fecharModal);
 
@@ -127,18 +147,21 @@ function ligarLojas(main) {
 const pedidosComLink = () => salvo.ler(CHAVES.pedidos, []).filter((p) => p?.codigo && /^[A-Za-z0-9]{32}$/.test(p.token || ''));
 
 // ---------- suporte ----------
-const MOTIVOS = [['nao_entregue', 'Meu pedido não foi entregue'], ['errado', 'Veio errado ou faltando'], ['demorando', 'O pedido está demorando'], ['outro', 'Outro problema']];
-export function paginaSuporte(main) {
+const MOTIVOS = [['nao_entregue', 'Meu pedido não foi entregue'], ['errado', 'Veio errado ou faltando'], ['demorando', 'O pedido está demorando'], ['outro', 'Outro problema'],
+  ['dados', 'Meus dados: quero consultar, corrigir ou apagar (LGPD)']];
+export function paginaSuporte(main, estadoRota) {
   const pedidos = pedidosComLink();
+  const inicial = MOTIVOS.some(([id]) => id === estadoRota?.params?.m) ? estadoRota.params.m : 'nao_entregue';
   main.innerHTML = secao(`${cab('Ajuda', 'Suporte')}
     ${avisoDemo()}
     <p class="mk-muted">Conte o que aconteceu. Nossa equipe fala com você e com o estabelecimento.</p>
     <form class="mk-card" id="mk-sup" novalidate>
       <fieldset style="border:0;padding:0;margin:0"><legend class="mk-l">O que aconteceu? *</legend>
-        ${MOTIVOS.map(([id, t], i) => `<label class="mk-chk"><input type="radio" name="motivo" value="${id}" ${i ? '' : 'checked'}> <span>${esc(t)}</span></label>`).join('')}</fieldset>
+        ${MOTIVOS.map(([id, t]) => `<label class="mk-chk"><input type="radio" name="motivo" value="${id}" ${id === inicial ? 'checked' : ''}> <span>${esc(t)}</span></label>`).join('')}</fieldset>
       ${pedidos.length ? `<label class="mk-l" for="mk-ped">Pedido</label><select id="mk-ped">${pedidos.map((p) => `<option value="${esc(p.codigo)}">${esc(p.codigo)}</option>`).join('')}<option value="">Não é sobre um pedido</option></select>` : ''}
       <label class="mk-l" for="mk-tel">Seu telefone com DDD *</label><input type="tel" id="mk-tel" inputmode="tel" autocomplete="tel-national" placeholder="(33) 98765-4321">
       <label class="mk-l" for="mk-txt">Detalhes</label><textarea id="mk-txt" rows="3" maxlength="1000" style="width:100%"></textarea>
+      <p class="mk-muted">Usamos seu telefone só para responder a este pedido de ajuda. Veja a <a href="#privacidade">política de privacidade</a>.</p>
       <p class="aviso aviso--erro" id="mk-sup-erro" role="alert" hidden></p>
       <button class="btn btn-primario" type="submit">Enviar</button>
     </form>`);
@@ -152,7 +175,7 @@ export function paginaSuporte(main) {
     const codigo = f.querySelector('#mk-ped')?.value || '';
     const ped = pedidos.find((p) => p.codigo === codigo);
     const falhar = (m) => { erro.textContent = m; erro.hidden = false; };
-    if (tel.length < 10 && !ped) return falhar('Digite seu telefone com DDD.');
+    if (tel.length < 10 && (!ped || motivo === 'dados')) return falhar(motivo === 'dados' ? 'Digite o telefone que você usou nos pedidos, com DDD.' : 'Digite seu telefone com DDD.');
     if (motivo === 'outro' && descricao.length < 5) return falhar('Conte em poucas palavras o que aconteceu.');
     erro.hidden = true;
     if (modoDemo()) return aviso('Demonstração: o chamado não foi enviado.');
@@ -168,14 +191,6 @@ export function paginaSuporte(main) {
       botao.disabled = false;
     }
   });
-}
-
-// ---------- termos ----------
-export function paginaTermos(main) {
-  const docs = ['Termos de uso', 'Política de privacidade (LGPD)', 'Política de cookies', 'Política de cancelamento e reembolso', 'Termo de adesão do estabelecimento'];
-  main.innerHTML = secao(`${cab('Documentos', 'Termos e políticas')}
-    ${docs.map((d) => `<div class="mk-card"><strong>${d}</strong><p class="mk-muted">Texto em revisão jurídica. Será publicado aqui antes do lançamento.</p></div>`).join('')}
-    <p class="mk-muted">Enquanto isso, veja como tratamos seus dados em <a href="#privacidade">Privacidade</a>.</p>`);
 }
 
 // ---------- avaliação (quadro depois da entrega) ----------

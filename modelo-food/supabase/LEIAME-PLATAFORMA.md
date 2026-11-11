@@ -10,7 +10,7 @@ Essa chave pode ficar no site. A chave *secret* / *service_role* nunca vai para 
 2. Cole o conteúdo inteiro de `supabase/plataforma.sql` e clique em **Run**.
 3. O resultado deve ser "Success. No rows returned".
 
-Pode rodar de novo depois, para atualizar as regras: não apaga dados.
+Pode rodar de novo depois, para atualizar as regras: não apaga dados. **Rode de novo sempre que o arquivo mudar** (a última mudança foi em 11/11/2026).
 **Não rode o `schema.sql` nem o `instalar.sql` neste projeto.** Eles são do site antigo, de uma loja só.
 
 ## 2. Virar administrador
@@ -45,6 +45,13 @@ O e-mail grátis do Supabase manda **poucos e-mails por hora**. Para muitos cada
 4. Você entra no mesmo painel (`admin.html`) com a sua conta de admin. Na aba **Administração**, confere os dados e clica em **Aprovar**. A loja aparece no site na hora.
 5. Para a cozinha: o funcionário cria uma conta no painel (sem preencher o cadastro de loja). O dono abre a aba **Loja > Equipe**, digita o e-mail dele e escolhe o papel. O funcionário toca em "Já fui incluído" e passa a ver os pedidos.
 6. Opções dos produtos (tamanho, adicionais): aba **Cardápio**, em "Opções de ..." de cada produto.
+
+## Pedido de exclusão de dados (LGPD)
+
+1. O cliente abre **Suporte** e escolhe "Meus dados". O chamado aparece na aba **Administração**.
+2. Confirme que quem pediu é o dono do telefone (ligue ou mande mensagem para o número).
+3. Clique em **Apagar dados deste telefone**. Nome, telefone, e-mail, endereço e observações saem dos pedidos já encerrados; itens e valores ficam.
+4. Marque o chamado como resolvido. O prazo prometido na política é de 15 dias.
 
 ## 5. O que o banco já faz
 

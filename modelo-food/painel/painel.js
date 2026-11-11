@@ -482,7 +482,7 @@ function cartaoPedido(p) {
   const destino = p.modo === 'entrega' && e
     ? `<p>${esc(e.endereco)}, ${esc(e.numero)}${e.complemento ? ` · ${esc(e.complemento)}` : ''}<br>${esc(e.bairro)}, ${esc(e.cidade)}${e.cep ? ` · CEP ${esc(e.cep)}` : ''}</p>
        <p><a class="link" href="${esc(linkMapa(e))}" target="_blank" rel="noopener noreferrer">Abrir no mapa</a></p>`
-    : '<p><b>Retirada no balcão</b></p>';
+    : p.modo === 'entrega' ? '<p>Endereço removido a pedido do cliente.</p>' : '<p><b>Retirada no balcão</b></p>';
   const itens = (p.pedido_itens || []).map((i) => `<li>
       <span class="pn-qtd">${i.qtd}x</span>
       <span class="pn-item"><b>${esc(i.nome)}</b>${detalhesItem(i).map((d) => `<small>${esc(d)}</small>`).join('')}${i.obs ? `<small class="pn-obs">Obs.: ${esc(i.obs)}</small>` : ''}</span>
@@ -504,8 +504,8 @@ function cartaoPedido(p) {
     </header>
     <div class="pn-ped-cliente">
       <p><b>${esc(p.cliente_nome)}</b></p>
-      <p><a class="link" href="${esc(linkTelefone(p.cliente_telefone))}">${esc(telefoneTxt(p.cliente_telefone))}</a>
-        · <a class="link" href="${esc(linkWhatsappCliente(p.cliente_telefone))}" target="_blank" rel="noopener noreferrer">WhatsApp</a></p>
+      ${p.cliente_telefone ? `<p><a class="link" href="${esc(linkTelefone(p.cliente_telefone))}">${esc(telefoneTxt(p.cliente_telefone))}</a>
+        · <a class="link" href="${esc(linkWhatsappCliente(p.cliente_telefone))}" target="_blank" rel="noopener noreferrer">WhatsApp</a></p>` : ''}
       ${destino}
     </div>
     <ul class="pn-itens">${itens}</ul>
@@ -1028,7 +1028,7 @@ function mostrarDados() {
         <div class="campo"><label for="pn-pix_tipo">Tipo da chave</label><select id="pn-pix_tipo" name="pix_tipo">
           ${[['', 'Escolha'], ['telefone', 'Telefone'], ['cpf', 'CPF'], ['cnpj', 'CNPJ'], ['email', 'E-mail'], ['aleatoria', 'Aleatória']].map(([v, t]) => `<option value="${v}"${(l.pix_tipo || '') === v ? ' selected' : ''}>${t}</option>`).join('')}
         </select></div>
-        ${campoTexto('pix_chave', 'Chave Pix', l.pix_chave || '', { max: 77, dica: 'Telefone com +55 e DDD, ex.: +5533988887777' })}
+        ${campoTexto('pix_chave', 'Chave Pix', l.pix_chave || '', { max: 77, dica: 'Telefone com +55 e DDD, ex.: +5533988887777. A chave aparece para o cliente: prefira a chave aleatória a CPF.' })}
       </div>
       <div class="linha-campos">
         ${campoTexto('pix_nome', 'Nome do recebedor', l.pix_nome || '', { max: 25, dica: 'Como aparece no banco, sem acento.' })}

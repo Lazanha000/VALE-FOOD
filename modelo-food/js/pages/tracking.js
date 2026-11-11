@@ -67,7 +67,7 @@ function cartaoStatus(p) {
     ${p.demonstracao ? '<p class="selo-demo">Status simulado para demonstração</p>' : ''}
     ${p.estabelecimento?.nome ? `<p class="status-pag"><b>${esc(p.estabelecimento.nome)}</b>${/^[0-9]{10,11}$/.test(p.estabelecimento.telefone || '') ? ` · <a class="link" href="tel:+55${p.estabelecimento.telefone}">Ligar para o estabelecimento</a>` : ''}</p>` : ''}
     ${semAcompanhamento(p) ? '<p class="aviso">O restaurante confirma o pedido e o prazo pelo WhatsApp. Este site não acompanha o preparo.</p>'
-      : cancelado ? '<p class="aviso aviso--erro"><strong>Pedido cancelado.</strong> Em caso de dúvida, fale com a loja pelo WhatsApp.</p>' : `<ol class="etapas">
+      : cancelado ? '<p class="aviso aviso--erro"><strong>Pedido cancelado.</strong> Em caso de dúvida, fale com o estabelecimento.</p>' : `<ol class="etapas">
       ${etapas.map((e, i) => `<li class="etapa ${i < idx ? 'is-feita' : i === idx ? 'is-atual' : ''}" ${i === idx ? 'aria-current="step"' : ''}>
         <span class="etapa-ponto" aria-hidden="true"></span><span class="etapa-nome">${esc(e.nome)}</span>
         ${i === idx ? '<span class="etapa-agora">agora</span>' : ''}

@@ -71,7 +71,7 @@ const base = (o) => ({
 export const ESTABS = [
   base({
     id: 'ze', nome: 'Lanchonete do Zé', nomeCurto: 'LANCHONETE', sufixo: 'DO ZÉ', cat: 'lanchonetes', cidade: 'Araçuaí',
-    nota: 4.8, avaliacoes: 42, descricao: 'Hambúrguer feito na hora, entregue na caixa da casa.',
+    nota: 0, avaliacoes: 0, descricao: 'Hambúrguer feito na hora, entregue na caixa da casa.',
     entrega: { ativo: true, tempo: '30 min', pedidoMinimo: 1500, taxa: { tipo: 'fixa', valor: 500 } },
     retirada: { ativo: true, tempo: '20 min', pedidoMinimo: 0, local: 'Rua das Flores, 120, Centro, Araçuaí' },
     horario: SEMANA([['07:00', '23:59']]), whatsapp: null,
@@ -80,7 +80,7 @@ export const ESTABS = [
   }),
   base({
     id: 'vale-bom', nome: 'Pizzaria Vale Bom', nomeCurto: 'PIZZARIA', sufixo: 'VALE BOM', cat: 'restaurantes', cidade: 'Araçuaí',
-    nota: 4.5, avaliacoes: 18, descricao: 'Pizzas no forno a lenha, todas as noites.',
+    nota: 0, avaliacoes: 0, descricao: 'Pizzas no forno a lenha, todas as noites.',
     entrega: { ativo: true, tempo: '45 min', pedidoMinimo: 3000, taxa: { tipo: 'fixa', valor: 600 } },
     retirada: { ativo: true, tempo: '30 min', pedidoMinimo: 0, local: 'Av. Principal, 45, Rio Branco, Araçuaí' },
     horario: SEMANA([['07:00', '23:59']]), whatsapp: null,
@@ -89,7 +89,7 @@ export const ESTABS = [
   }),
   base({
     id: 'praca', nome: 'Burguer da Praça', nomeCurto: 'BURGUER', sufixo: 'DA PRAÇA', cat: 'lanchonetes', cidade: 'Coronel Murta',
-    nota: 5, avaliacoes: 2, descricao: 'Lanches artesanais na praça central.',
+    nota: 0, avaliacoes: 0, descricao: 'Lanches artesanais na praça central.',
     entrega: { ativo: true, tempo: '25 min', pedidoMinimo: 1200, taxa: { tipo: 'fixa', valor: 400 } },
     retirada: { ativo: true, tempo: '15 min', pedidoMinimo: 0, local: 'Praça Central, 10, Coronel Murta' },
     horario: SEMANA([['07:00', '23:59']]), whatsapp: null,
@@ -98,7 +98,7 @@ export const ESTABS = [
   }),
   base({
     id: 'sabor-rio', nome: 'Sabor do Rio', nomeCurto: 'SABOR', sufixo: 'DO RIO', cat: 'restaurantes', cidade: 'Itaobim',
-    nota: 4.2, avaliacoes: 30, descricao: 'Comida caseira, prato feito todo dia.',
+    nota: 0, avaliacoes: 0, descricao: 'Comida caseira, prato feito todo dia.',
     entrega: { ativo: true, tempo: '50 min', pedidoMinimo: 2000, taxa: { tipo: 'fixa', valor: 700 } },
     retirada: { ativo: true, tempo: '30 min', pedidoMinimo: 0, local: 'Rua do Comércio, 8, Centro, Itaobim' },
     horario: SEMANA([['10:30', '14:30']]), whatsapp: null, // aberto só no almoço
@@ -107,7 +107,7 @@ export const ESTABS = [
   }),
   base({
     id: 'esquina', nome: 'Espetinho da Esquina', nomeCurto: 'ESPETINHO', sufixo: 'DA ESQUINA', cat: 'lanchonetes', cidade: 'Virgem da Lapa',
-    nota: 4.6, avaliacoes: 11, descricao: 'Lanches e porções para a noite.',
+    nota: 0, avaliacoes: 0, descricao: 'Lanches e porções para a noite.',
     entrega: { ativo: true, tempo: '35 min', pedidoMinimo: 1500, taxa: { tipo: 'fixa', valor: 500 } },
     retirada: { ativo: true, tempo: '20 min', pedidoMinimo: 0, local: 'Rua Nova, 77, Bairro Alto, Virgem da Lapa' },
     horario: SEMANA([['17:00', '23:59']]), whatsapp: null,

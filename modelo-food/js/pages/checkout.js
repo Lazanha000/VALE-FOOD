@@ -38,7 +38,7 @@ const campoBairro = () => taxaPorBairro()
   ? `<div class="campo" data-campo="bairro">
       <label for="f-bairro">Bairro</label>
       <select id="f-bairro" name="bairro" autocomplete="address-level3" aria-describedby="e-bairro d-bairro">${opcoesBairro()}</select>
-      <p class="campo-dica" id="d-bairro">Não achou seu bairro? Fale com a gente pelo WhatsApp.</p>
+      <p class="campo-dica" id="d-bairro">Não achou seu bairro? Fale com o estabelecimento.</p>
       <p class="campo-erro" id="e-bairro"></p>
     </div>`
   : campo('bairro', 'Bairro', { auto: 'address-level3', max: 60 });
@@ -252,10 +252,10 @@ export function paginaFinalizar(main) {
     email: (v) => (!v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Digite um e-mail válido, como nome@email.com, ou deixe em branco.'),
     telefone: (v) => (telefoneValido(v) ? '' : 'Digite um telefone com DDD, como (11) 98765-4321.'),
     cep: (v) => (retirando() || digitos(v).length === 8 ? '' : 'O CEP tem 8 números.'),
-    cidade: (v) => (retirando() ? '' : v.trim().length < 2 ? 'Digite a cidade.' : cidadeAtendida(v) ? '' : 'Não entregamos nesta cidade pelo site. Fale com a gente pelo WhatsApp.'),
+    cidade: (v) => (retirando() ? '' : v.trim().length < 2 ? 'Digite a cidade.' : cidadeAtendida(v) ? '' : 'Não entregamos nesta cidade pelo site. Fale com o estabelecimento.'),
     endereco: (v) => (retirando() || v.trim().length >= 3 ? '' : 'Digite a rua ou avenida.'),
     numero: (v) => (retirando() || v.trim() ? '' : 'Digite o número ou “s/n”.'),
-    bairro: (v) => (!retirando() && semEntregaNoBairro(v) ? 'Não entregamos neste bairro pelo site. Fale com a gente pelo WhatsApp.' : retirando() || v.trim().length >= 2 ? '' : (taxaPorBairro() ? 'Escolha o bairro.' : 'Digite o bairro.')),
+    bairro: (v) => (!retirando() && semEntregaNoBairro(v) ? 'Não entregamos neste bairro pelo site. Fale com o estabelecimento.' : retirando() || v.trim().length >= 2 ? '' : (taxaPorBairro() ? 'Escolha o bairro.' : 'Digite o bairro.')),
     troco: (v) => {
       if (troco.hidden || trocoValor.hidden) return '';
       const c = lerReais(v);
@@ -310,12 +310,12 @@ export function paginaFinalizar(main) {
       avisar(msg, 'erro');
     };
     const robo = pareceRobo({ isca: $('isca').value, ms: Date.now() - abertoEm });
-    if (robo === 'isca') return barrado('Não foi possível enviar o pedido. Fale com a gente pelo WhatsApp.');
+    if (robo === 'isca') return barrado('Não foi possível enviar o pedido. Fale com o estabelecimento.');
     if (robo === 'rapido') return barrado('Só um instante: confira seus dados e toque em confirmar de novo.');
     // Sem WhatsApp e sem sistema de pedidos o pedido não teria para onde ir: não finge que deu certo
     if (semCanal()) return barrado('Não é possível receber pedidos pelo site agora. Fale com o restaurante por telefone.');
     const limite = limiteDeEnvios(salvo.ler(CHAVE_ENVIOS, []));
-    if (limite.bloqueado) return barrado(`Você já enviou vários pedidos há pouco. Tente de novo em ${limite.esperaMin} min ou fale com a gente pelo WhatsApp.`);
+    if (limite.bloqueado) return barrado(`Você já enviou vários pedidos há pouco. Tente de novo em ${limite.esperaMin} min ou fale com o estabelecimento.`);
     const btn = form.querySelector('.btn-enviar');
     btn.disabled = true;
     btn.classList.add('is-carregando');

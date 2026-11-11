@@ -123,9 +123,9 @@ export function telaCadastroLoja(main, { cliente, aoTerminar }) {
       </div>
     </fieldset>
     <fieldset class="pn-bloco"><legend>Aceites</legend>
-      <label class="check"><input type="checkbox" name="termos"> Li e aceito os <a class="link" href="./#termos" target="_blank" rel="noopener">Termos de uso</a></label>
-      <label class="check"><input type="checkbox" name="privacidade"> Li e aceito a <a class="link" href="./#termos" target="_blank" rel="noopener">Política de privacidade</a></label>
-      <label class="check"><input type="checkbox" name="adesao"> Li e aceito o <a class="link" href="./#termos" target="_blank" rel="noopener">Termo de adesão</a> (mensalidade e regras)</label>
+      <label class="check"><input type="checkbox" name="termos"> Li e aceito os <a class="link" href="./#termos-uso" target="_blank" rel="noopener">Termos de uso</a></label>
+      <label class="check"><input type="checkbox" name="privacidade"> Li e aceito a <a class="link" href="./#privacidade" target="_blank" rel="noopener">Política de privacidade</a></label>
+      <label class="check"><input type="checkbox" name="adesao"> Li e aceito o <a class="link" href="./#adesao" target="_blank" rel="noopener">Termo de adesão</a> (mensalidade e regras)</label>
     </fieldset>
     <p class="aviso aviso--erro" data-erro role="alert" hidden></p>
     <button type="submit" class="btn btn-primario btn-largo"><span class="btn-txt">Enviar para aprovação</span></button>
@@ -160,13 +160,14 @@ export function telaCadastroLoja(main, { cliente, aoTerminar }) {
 
 // ---------- administração ----------
 const SITUACOES = { pendente: 'Em análise', aprovado: 'Aprovado', recusado: 'Recusado', suspenso: 'Suspenso' };
-const MOTIVOS = { nao_entregue: 'Não foi entregue', errado: 'Veio errado', demorando: 'Demorando', outro: 'Outro' };
+const MOTIVOS = { nao_entregue: 'Não foi entregue', errado: 'Veio errado', demorando: 'Demorando', outro: 'Outro', dados: 'Dados pessoais (LGPD)' };
 const doc = (t, d) => (t === 'cnpj' && /^\d{14}$/.test(d) ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
   : /^\d{11}$/.test(d || '') ? d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : esc(d || ''));
+const PARADO_MIN = 10;   // pedido 'recebido' há mais que isso aparece como sem resposta
 const inicioDoMes = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 
 export function montarAdmin(raiz, { cliente, avisar, aoAbrirLoja }) {
-  const est = { lojas: [], chamados: [], mensal: [], vendas: { hoje: [], d7: [], d30: [] }, filtro: 'pendente' };
+  const est = { lojas: [], chamados: [], mensal: [], parados: [], vendas: { hoje: [], d7: [], d30: [] }, filtro: 'pendente' };
 
   async function carregar() {
     raiz.innerHTML = '<p class="pn-dica">Carregando…</p>';
@@ -175,14 +176,15 @@ export function montarAdmin(raiz, { cliente, avisar, aoAbrirLoja }) {
     const ate = new Date(agora.getTime() + 60000).toISOString();
     const vendas = (de) => cliente.rest('rpc/resumo_vendas', { method: 'POST', body: { de: de.toISOString(), ate, estabelecimento: null } });
     try {
-      const [lojas, chamados, mensal, hoje, d7, d30] = await Promise.all([
+      const [lojas, chamados, mensal, parados, hoje, d7, d30] = await Promise.all([
         cliente.rest('estabelecimentos?select=id,nome,cidade,categoria,situacao,telefone_publico,criado_em,'
           + 'estabelecimentos_privado(documento_tipo,documento,razao_social,responsavel_nome,responsavel_telefone,responsavel_email,endereco,situacao_motivo)&order=criado_em.desc'),
         cliente.rest('chamados?select=id,motivo,descricao,telefone,situacao,resposta,criado_em,pedidos(codigo),estabelecimentos(nome,telefone_publico)&order=criado_em.desc&limit=100'),
         cliente.rest(`mensalidades?select=*&competencia=eq.${inicioDoMes()}`),
+        cliente.rest(`pedidos?select=codigo,criado_em,estabelecimentos(nome,telefone_publico)&status=eq.recebido&criado_em=lt.${new Date(agora - PARADO_MIN * 60000).toISOString()}&order=criado_em&limit=50`),
         vendas(meiaNoite), vendas(new Date(agora - 7 * 86400000)), vendas(new Date(agora - 30 * 86400000)),
       ]);
-      Object.assign(est, { lojas, chamados, mensal, vendas: { hoje, d7, d30 } });
+      Object.assign(est, { lojas, chamados, mensal, parados, vendas: { hoje, d7, d30 } });
     } catch (e) {
       if (e.status === 401) return;
       raiz.innerHTML = `<p class="aviso aviso--erro" role="alert">Não deu para carregar a administração: ${esc(e.message)}</p>
@@ -202,6 +204,10 @@ export function montarAdmin(raiz, { cliente, avisar, aoAbrirLoja }) {
     const mes = inicioDoMes();
     const aprovadas = est.lojas.filter((l) => l.situacao === 'aprovado');
     raiz.innerHTML = `
+      ${est.parados.length ? `<section class="pn-cartao"><h2>Pedidos sem resposta <span class="pn-cont">${est.parados.length}</span></h2>
+        <p class="aviso aviso--erro">Há mais de ${PARADO_MIN} minutos como “recebido”, sem a loja começar o preparo. Ligue para o estabelecimento.</p>
+        ${est.parados.map((p) => `<p><b>${esc(p.codigo)}</b> · ${esc(p.estabelecimentos?.nome || '')} · ${p.estabelecimentos?.telefone_publico ? `<a class="link" href="tel:+55${esc(p.estabelecimentos.telefone_publico)}">${esc(telefoneTxt(p.estabelecimentos.telefone_publico))}</a> · ` : ''}pedido às ${new Date(p.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>`).join('')}
+      </section>` : ''}
       <section class="pn-cartao"><h2>Vendas na plataforma</h2>
         <p class="pn-dica">Total dos pedidos (sem cancelados). O dinheiro vai direto para cada estabelecimento.</p>
         <div class="pn-adm-kpi">${k.map(([t, x]) => `<p><span>${t}</span><b>${x.pedidos} ${x.pedidos === 1 ? 'pedido' : 'pedidos'}</b><span>${brl(x.total)}</span></p>`).join('')}</div>
@@ -235,7 +241,7 @@ export function montarAdmin(raiz, { cliente, avisar, aoAbrirLoja }) {
           <p class="pn-dica">${c.pedidos?.codigo ? `Pedido ${esc(c.pedidos.codigo)} · ` : ''}${c.estabelecimentos?.nome ? `${esc(c.estabelecimentos.nome)}${c.estabelecimentos.telefone_publico ? ` (${esc(telefoneTxt(c.estabelecimentos.telefone_publico))})` : ''} · ` : ''}Cliente: ${esc(telefoneTxt(c.telefone))}</p>
           ${c.descricao ? `<p>${esc(c.descricao)}</p>` : ''}
           ${c.resposta ? `<p class="pn-dica">Anotação: ${esc(c.resposta)}</p>` : ''}
-          ${c.situacao === 'aberto' ? '<div class="pn-ped-acoes"><button type="button" class="btn btn-sec" data-adm-resolver>Marcar resolvido</button></div>' : ''}
+          ${c.situacao === 'aberto' ? `<div class="pn-ped-acoes">${c.motivo === 'dados' ? `<button type="button" class="btn btn-sec" data-adm-anonimizar="${esc(c.telefone)}">Apagar dados deste telefone</button>` : ''}<button type="button" class="btn btn-sec" data-adm-resolver>Marcar resolvido</button></div>` : ''}
         </article>`).join('') : '<p class="pn-vazio">Nenhum chamado.</p>'}
       </section>
 
@@ -276,7 +282,12 @@ export function montarAdmin(raiz, { cliente, avisar, aoAbrirLoja }) {
       }
       agir(() => cliente.rest('rpc/definir_situacao', { method: 'POST', body: { estabelecimento: loja, situacao, motivo } }), `${SITUACOES[situacao]}.`);
     } else if (b.hasAttribute('data-adm-abrir') && loja) aoAbrirLoja(loja);
-    else if (b.hasAttribute('data-adm-resolver')) {
+    else if (b.dataset.admAnonimizar) {
+      if (!confirm(`Apagar nome, telefone, e-mail e endereço dos pedidos encerrados de ${telefoneTxt(b.dataset.admAnonimizar)}? Não dá para desfazer. Confirme antes que quem pediu é o dono do telefone.`)) return;
+      cliente.rest('rpc/anonimizar_cliente', { method: 'POST', body: { telefone: b.dataset.admAnonimizar } }).then((r) => {
+        avisar(`${r.pedidos} pedido(s) anonimizado(s).${r.em_andamento ? ` ${r.em_andamento} em andamento ficaram: repita depois de entregues.` : ''}`);
+      }, (e) => { if (e.status !== 401) avisar(e.message || 'Não deu para apagar.', 'erro'); });
+    } else if (b.hasAttribute('data-adm-resolver')) {
       const id = b.closest('[data-chamado]').dataset.chamado;
       const resposta = prompt('Anotação (opcional): o que foi feito?', '');
       if (resposta === null) return;
@@ -297,4 +308,6 @@ export function montarAdmin(raiz, { cliente, avisar, aoAbrirLoja }) {
   });
 
   carregar();
+  // confere pedidos parados e chamados novos a cada 2 minutos, se ninguém está mexendo na aba
+  setInterval(() => { if (raiz.isConnected && !raiz.closest('[hidden]') && !raiz.contains(document.activeElement)) carregar(); }, 120000);
 }

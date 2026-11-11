@@ -123,6 +123,8 @@ teste('dono não se aprova sozinho', () => {
   const r = erro(`update public.estabelecimentos set situacao = 'aprovado' where id = '${ZE}'`, DONO);
   assert.match(r.message, /administração/);
   erro(`select public.definir_situacao('${ZE}', 'aprovado')`, DONO);
+  erro(`update public.estabelecimentos set nome = 'Outra Loja Famosa' where id = '${ZE}'`, DONO);
+  q(`update public.estabelecimentos set descricao = 'Nova descrição' where id = '${ZE}'`, DONO);
 });
 
 console.log('\nCardápio');
@@ -289,6 +291,17 @@ teste('loja suspensa some e para de receber pedidos', () => {
   assert.equal(q(`select count(*) from public.produtos`, null), 0);
   erro(`select public.criar_pedido('${ZE}', ${json({ ...PEDIDO, cliente: { nome: 'Eva Melo', telefone: '33977778888' } })}, '${randomUUID()}')`, null);
   assert.equal(q(`select to_json(situacao_motivo) from public.estabelecimentos_privado where estabelecimento_id = '${ZE}'`, DONO), 'Mensalidade atrasada');
+});
+teste('LGPD: cliente pede exclusão; só o admin anonimiza; valores ficam', () => {
+  q(`select public.abrir_chamado('dados', 'Quero apagar meus dados', '(33) 98765-4321')`, null);
+  erro(`select public.anonimizar_cliente('33987654321')`, DONO);
+  erro(`select public.anonimizar_cliente('33987654321')`, null);
+  const r = q(`select public.anonimizar_cliente('(33) 98765-4321')`, ADMIN);
+  assert.equal(r.pedidos, 1);
+  assert.deepEqual(q(`select json_build_object('n', cliente_nome, 't', cliente_telefone, 'e', entrega, 'total', total) from public.pedidos where codigo = '${PED.codigo}'`, ADMIN),
+    { n: 'Dados removidos', t: '', e: null, total: 4900 });
+  assert.equal(q(`select to_json(comentario) from public.avaliacoes`, ADMIN), '');
+  assert.ok(q(`select public.acompanhar_pedido('${PED.codigo}', '${PED.token}')`, null).total === 4900);
 });
 teste('visitante não chama funções internas nem de painel', () => {
   erro(`select public._texto('"a"'::jsonb, 'x', 1)`, null);

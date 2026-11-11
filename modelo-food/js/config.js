@@ -164,15 +164,15 @@ export const CONFIG = {
   // Valores abaixo são PROVISÓRIOS (marca fictícia): troque pelos do comércio e peça
   // revisão de quem entende de LGPD antes de publicar para clientes reais.
   privacidade: {
-    controlador: 'Modelo Burguer',
-    cnpj: 'xx.xxx.xxx/0001-xx',   // trocar pelo CNPJ real antes de publicar
+    controlador: '',   // razão social da empresa da plataforma
+    cnpj: '',          // formato 00.000.000/0000-00. Vazio = as páginas avisam "plataforma em fase de testes"
     // contato do titular dos dados: troque pelos reais (vazio = não aparece)
-    email: 'contato@suamarca.com.br',
+    email: '',
     telefone: '',   // ex.: '(11) 98765-4321'
     // endereço físico da empresa, mostrado no rodapé com a razão social e o CNPJ (exigido pelo
     // Decreto 7.962/2013 para quem vende pela internet). Vazio = usa o endereço de retirada.
     endereco: '',
-    atualizadoEm: '2026-10-26',
+    atualizadoEm: '2026-11-11',
   },
 
   // Sistema de pedidos (Supabase) e painel do restaurante (admin.html). Os dois ficam em
