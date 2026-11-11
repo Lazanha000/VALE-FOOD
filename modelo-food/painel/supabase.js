@@ -173,6 +173,33 @@ export function clienteSupabase({ url, chave, guarda, fetchFn = (...a) => fetch(
     return { entrou: false };
   }
 
+  // "Esqueci minha senha": o Supabase manda um e-mail com link que volta para `voltarPara`
+  // com #access_token=...&type=recovery. `voltarPara` tem de estar em Authentication > URL Configuration.
+  async function recuperarSenha(email, voltarPara) {
+    try {
+      await chamar(`/auth/v1/recover?redirect_to=${encodeURIComponent(voltarPara)}`, { method: 'POST', body: { email: String(email).trim() } });
+    } catch (e) {
+      if (e.status === 429) throw new ErroPainel('Muitos pedidos agora. Espere alguns minutos e tente de novo.', 429);
+      throw e;
+    }
+  }
+  // volta do link: grava a senha nova com o token do link e já deixa a pessoa dentro
+  async function novaSenha(link, senha) {
+    let user;
+    try {
+      user = await chamar('/auth/v1/user', { method: 'PUT', token: link.access_token, body: { password: String(senha) } });
+    } catch (e) {
+      const cod = e.dados?.error_code || e.dados?.code;
+      if (cod === 'same_password') throw new ErroPainel('A senha nova tem de ser diferente da antiga.', e.status);
+      if (cod === 'weak_password') throw new ErroPainel('Senha fraca. Use 8 ou mais caracteres, com letras e números.', e.status);
+      if (e.status === 401 || e.status === 403) throw new ErroPainel('O link expirou. Peça outro em “Esqueci minha senha”.', e.status);
+      throw e;
+    }
+    const s = sessaoDe({ ...link, user });
+    if (!s?.user.id) throw new ErroPainel('Senha trocada. Entre com a senha nova.', 500);
+    trocar(s);
+  }
+
   async function sair() {
     const t = sessao?.access_token;
     trocar(null);
@@ -180,7 +207,7 @@ export function clienteSupabase({ url, chave, guarda, fetchFn = (...a) => fetch(
   }
 
   return {
-    entrar, cadastrar, sair, rest, enviarArquivo, apagarArquivo, token, renovar,
+    entrar, cadastrar, recuperarSenha, novaSenha, sair, rest, enviarArquivo, apagarArquivo, token, renovar,
     usuario: () => sessao?.user || null,
     // fn(token | null): token novo depois de renovar, null ao sair/expirar
     aoTrocarToken(fn) { ouvintes.add(fn); return () => ouvintes.delete(fn); },

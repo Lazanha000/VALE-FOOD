@@ -540,7 +540,7 @@ begin
       'numero', public._texto(v_entrega -> 'numero', 'número', 15),
       'complemento', public._texto(v_entrega -> 'complemento', 'complemento', 60),
       'bairro', public._texto(v_entrega -> 'bairro', 'bairro', 60));
-    if length(v_entrega ->> 'cep') <> 8 then raise exception 'O CEP tem 8 números.'; end if;
+    if length(v_entrega ->> 'cep') not in (0, 8) then raise exception 'O CEP tem 8 números (ou deixe em branco).'; end if;
     if length(v_entrega ->> 'cidade') < 2 then raise exception 'Digite a cidade.'; end if;
     if length(v_entrega ->> 'endereco') < 3 then raise exception 'Digite a rua ou avenida.'; end if;
     if v_entrega ->> 'numero' = '' then raise exception 'Digite o número ou “s/n”.'; end if;
@@ -1223,4 +1223,41 @@ begin
     with check (bucket_id = 'documentos' and (public.eh_dono((storage.foldername(name))[1]) or public.eh_admin()));
   create policy plataforma_docs_apaga on storage.objects for delete to authenticated
     using (bucket_id = 'documentos' and public.eh_admin());
+end $$;
+
+-- ============================================================
+-- LIMPEZA AUTOMÁTICA (prazo prometido na política de privacidade, seção 6)
+-- * pedido encerrado há mais de 5 anos: tira nome, telefone, e-mail, endereço e observações
+--   (itens e valores ficam, para as contas). Mesmo efeito de anonimizar_cliente.
+-- * chamado resolvido há mais de 5 anos: tira telefone e descrição.
+-- * marca do aparelho (ip_hash) só serve contra pedidos em massa (janela de minutos): sai depois de 30 dias.
+-- Roda todo dia às 3h (hora de Brasília) pelo pg_cron. Ninguém de fora pode chamar.
+-- ============================================================
+create or replace function public.limpar_dados_antigos() returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare n_ped integer; n_cham integer;
+begin
+  update public.pedidos p set cliente_nome = 'Dados removidos', cliente_telefone = '', cliente_email = null, entrega = null, obs = ''
+  where p.criado_em < now() - interval '5 years' and p.status in ('entregue', 'cancelado') and p.cliente_nome <> 'Dados removidos';
+  get diagnostics n_ped = row_count;
+  update public.pedido_itens i set obs = '' where i.obs <> '' and i.pedido_id in (select p.id from public.pedidos p where p.cliente_nome = 'Dados removidos');
+  update public.avaliacoes a set comentario = '' where a.comentario <> '' and a.pedido_id in (select p.id from public.pedidos p where p.cliente_nome = 'Dados removidos');
+  update public.chamados c set telefone = '0000000000', descricao = ''
+  where c.situacao = 'resolvido' and c.atualizado_em < now() - interval '5 years' and c.telefone <> '0000000000';
+  get diagnostics n_cham = row_count;
+  update public.pedidos_acesso a set ip_hash = null
+  where a.ip_hash is not null and a.pedido_id in (select p.id from public.pedidos p where p.criado_em < now() - interval '30 days');
+  update public.chamados c set ip_hash = null where c.ip_hash is not null and c.criado_em < now() - interval '30 days';
+  return jsonb_build_object('pedidos', n_ped, 'chamados', n_cham);
+end;
+$$;
+revoke execute on function public.limpar_dados_antigos() from public, anon, authenticated;
+
+-- agenda no pg_cron (o Supabase tem; sem ele, só avisa e segue)
+do $$
+begin
+  create extension if not exists pg_cron with schema pg_catalog;
+  perform cron.schedule('limpar-dados-antigos', '0 6 * * *', 'select public.limpar_dados_antigos()');
+exception when others then
+  raise notice 'pg_cron indisponível (%): a limpeza automática não foi agendada.', sqlerrm;
 end $$;

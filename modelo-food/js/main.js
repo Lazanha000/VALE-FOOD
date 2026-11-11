@@ -180,4 +180,8 @@ avisoArmazenamento();
 instalarReservaDeImagens();
 document.getElementById('ano').textContent = new Date().getFullYear();
 
-// PWA (service worker): fica desligado no protótipo; volta quando o site for publicado em domínio próprio.
+
+// Ligado: abre sem internet as telas já visitadas e deixa instalar como app. Só em https (ou localhost).
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* sem PWA: o site funciona igual */ });
+}

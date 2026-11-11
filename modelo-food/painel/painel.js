@@ -28,7 +28,7 @@ import {
 import { prepararFoto } from './fotos.js';
 import { fotoDoBanco, idLojaValido } from '../js/services/cardapio.js';
 import { validarPix } from '../js/pix.js';
-import { telaCadastroLoja, telaCriarConta, montarAdmin, linkDaLoja, voltouDaConfirmacao } from './plataforma.js';
+import { telaCadastroLoja, telaCriarConta, telaEsqueciSenha, telaNovaSenha, montarAdmin, linkDaLoja, voltouDaConfirmacao, voltouDaRecuperacao } from './plataforma.js';
 
 const $ = (s, raiz = document) => raiz.querySelector(s);
 const main = $('#pn-conteudo');
@@ -106,6 +106,7 @@ $('#pn-som').addEventListener('pointerdown', () => { botaoLiberava = somBloquead
 $('#pn-som').addEventListener('click', () => {
   const liberar = botaoLiberava || somBloqueado();
   botaoLiberava = false;
+  pedirPermissaoAviso();
   if (liberar) { prepararAudio(); tocar(); return; }
   somLigado = !somLigado;
   try { localStorage.setItem(CHAVE_SOM, somLigado ? '1' : '0'); } catch { /* fica só nesta aba */ }
@@ -116,6 +117,24 @@ $('#pn-som').addEventListener('click', () => {
 // o navegador só libera o som depois de um toque na página
 document.addEventListener('pointerdown', prepararAudio);
 mostrarSom();
+
+// ---------- aviso do sistema (painel em segundo plano: atendente no WhatsApp, outra aba) ----------
+// Só funciona com o navegador aberto. Com ele fechado não chega aviso (isso exigiria notificação push).
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* sem service worker: usa new Notification */ });
+}
+function pedirPermissaoAviso() {
+  try { if (window.Notification?.permission === 'default') Notification.requestPermission().catch(() => {}); } catch { /* navegador antigo */ }
+}
+function avisarSistema(qtd) {
+  if (!document.hidden || window.Notification?.permission !== 'granted') return;
+  const titulo = qtd > 1 ? `${qtd} pedidos novos` : 'Pedido novo';
+  const opcoes = { body: nomeLoja, tag: 'pedido-novo', renotify: true, icon: 'assets/icons/icon-192.png' };
+  // Android só aceita aviso pelo service worker; o computador aceita dos dois jeitos
+  Promise.resolve(navigator.serviceWorker?.getRegistration())
+    .then((r) => (r ? r.showNotification(titulo, opcoes) : new Notification(titulo, opcoes)))
+    .catch(() => { /* sem aviso do sistema: ficam o som e o título da aba */ });
+}
 
 // ---------- tela sempre acesa (tablet/celular do balcão) ----------
 // Com a tela apagada o navegador corta a conexão e o pedido novo não chega. O pedido de tela acesa
@@ -215,10 +234,12 @@ function telaLogin(mensagem = '') {
       <p class="aviso aviso--erro pn-login-erro" id="pn-login-erro" role="alert" ${mensagem ? '' : 'hidden'}>${esc(mensagem)}</p>
       <button class="btn btn-primario btn-largo" type="submit"><span class="btn-txt">Entrar</span></button>
     </form>
+    <p class="pn-dica"><button type="button" class="link" data-esqueci>Esqueci minha senha</button></p>
     <p class="pn-dica">Ainda não tem conta? <button type="button" class="link" data-criar-conta>Criar conta para cadastrar meu estabelecimento</button></p>
     <p><a class="link" href="./">Voltar para o site</a></p>
   </section>`;
   $('[data-criar-conta]').addEventListener('click', () => telaCriarConta(main, { cliente, aoEntrar: iniciarPainel, aoVoltar: telaLogin }));
+  $('[data-esqueci]').addEventListener('click', () => telaEsqueciSenha(main, { cliente, aoVoltar: telaLogin }));
   const form = $('#pn-form-login');
   const erro = $('#pn-login-erro');
   form.addEventListener('submit', async (ev) => {
@@ -232,6 +253,7 @@ function telaLogin(mensagem = '') {
     botao.classList.add('is-carregando');
     erro.hidden = true;
     prepararAudio();
+    pedirPermissaoAviso();
     try {
       await cliente.entrar(email, senha);
       await iniciarPainel();
@@ -423,6 +445,7 @@ function receberPedidos(lista) {
   if (!primeira && chegaram.length) {
     chegaram.forEach((p) => estado.novos.add(p.id));
     tocar();
+    avisarSistema(chegaram.length);
     avisar(chegaram.length === 1 ? `Pedido novo: ${chegaram[0].codigo}` : `${chegaram.length} pedidos novos`);
   }
   // "novo" some quando alguém mexe no pedido
@@ -1392,7 +1415,9 @@ document.addEventListener('visibilitychange', () => {
 // ============================================================
 // INÍCIO
 // ============================================================
+const linkSenha = cliente && voltouDaRecuperacao();
 if (!cliente) telaSemBanco();
+else if (linkSenha) telaNovaSenha(main, { cliente, link: linkSenha, aoEntrar: iniciarPainel, aoVoltar: telaLogin });
 else if (cliente.usuario()) iniciarPainel();
 else if (location.hash === '#cadastro') telaCriarConta(main, { cliente, aoEntrar: iniciarPainel, aoVoltar: telaLogin });
 else telaLogin(voltouDaConfirmacao());

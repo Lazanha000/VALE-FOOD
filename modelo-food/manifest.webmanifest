@@ -1,7 +1,7 @@
 {
-  "name": "Modelo Burguer",
-  "short_name": "Modelo Burguer",
-  "description": "Cardápio e pedidos da Modelo Burguer.",
+  "name": "Modelo Food",
+  "short_name": "Modelo Food",
+  "description": "Peça de lanchonetes e restaurantes do Vale do Jequitinhonha e do Vale do Mucuri.",
   "lang": "pt-BR",
   "start_url": "./index.html",
   "scope": "./",

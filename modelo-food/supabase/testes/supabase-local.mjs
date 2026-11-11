@@ -71,6 +71,24 @@ async function auth(req, res, caminho, corpo) {
     // CONFIRMAR=1 imita o Supabase com confirmação de e-mail ligada (não devolve sessão)
     return enviar(200, process.env.CONFIRMAR === '1' ? { id, email: c.email } : sessao(id, c.email));
   }
+  // "Esqueci minha senha": em vez do e-mail, escreve o link no terminal
+  if (caminho.startsWith('recover')) {
+    const volta = new URL(caminho, 'http://x/').searchParams.get('redirect_to') || `http://localhost:${PORTA}/admin.html`;
+    const linha = psql(`select id || '|' || email from auth.users where lower(email) = lower(${lit(c.email)})`);
+    if (linha) {
+      const [id, email] = linha.split('|');
+      const s = sessao(id, email);
+      console.log(`[e-mail imitado] link de senha nova para ${email}: ${volta}#access_token=${s.access_token}&refresh_token=${s.refresh_token}&expires_in=3600&type=recovery`);
+    }
+    return enviar(200, {});
+  }
+  if (caminho === 'user' && req.method === 'PUT') {
+    const t = String(req.headers.authorization || '').replace(/^Bearer /, '').split('.');
+    if (t.length !== 3 || createHmac('sha256', SEGREDO).update(`${t[0]}.${t[1]}`).digest('base64url') !== t[2]) return enviar(401, { msg: 'token inválido' });
+    const { sub, email } = JSON.parse(Buffer.from(t[1], 'base64url').toString());
+    psql(`update auth.users set senha = ${lit(c.password)} where id = ${lit(sub)}`);
+    return enviar(200, { id: sub, email });
+  }
   if (caminho === 'logout') return enviar(204);
   return enviar(404, { msg: 'rota não imitada' });
 }

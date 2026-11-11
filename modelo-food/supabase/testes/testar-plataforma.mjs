@@ -308,6 +308,18 @@ teste('visitante não chama funções internas nem de painel', () => {
   erro(`select public.salvar_horarios('${ZE}', '[]'::jsonb)`, null);
   erro(`select public.resumo_vendas(now() - interval '1 day', now(), null)`, null);
 });
+teste('limpeza automática: só o que passou de 5 anos; ninguém de fora chama', () => {
+  erro(`select public.limpar_dados_antigos()`, null);
+  erro(`select public.limpar_dados_antigos()`, ADMIN);
+  const vivos = () => q(`select count(*) from public.pedidos where cliente_nome <> 'Dados removidos'`, 'postgres');
+  const antes = vivos();
+  assert.ok(antes >= 2, 'precisa de 2 pedidos com dados para o teste');
+  assert.equal(q(`select public.limpar_dados_antigos()`, 'postgres').pedidos, 0);
+  q(`with x as (update public.pedidos set criado_em = now() - interval '6 years', status = 'entregue'
+     where id = (select min(id) from public.pedidos where cliente_nome <> 'Dados removidos') returning 1) select count(*) from x`, 'postgres');
+  assert.equal(q(`select public.limpar_dados_antigos()`, 'postgres').pedidos, 1);
+  assert.equal(vivos(), antes - 1);
+});
 
 console.log(`\n${ok} ok, ${falhas.length} falha(s)`);
 process.exit(falhas.length ? 1 : 0);

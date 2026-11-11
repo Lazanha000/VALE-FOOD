@@ -122,13 +122,13 @@ export function paginaFinalizar(main) {
           ${campo('nome', 'Nome completo', { auto: 'name', max: 80 })}
           <div class="linha-campos">
             ${campo('email', 'E-mail', { tipo: 'email', auto: 'email', modo: 'email', opcional: true, max: 100 })}
-            ${campo('telefone', 'Telefone (WhatsApp)', { tipo: 'tel', auto: 'tel-national', modo: 'tel', extra: 'placeholder="(11) 98765-4321"' })}
+            ${campo('telefone', 'Telefone (WhatsApp)', { tipo: 'tel', auto: 'tel-national', modo: 'tel', extra: 'placeholder="(33) 98765-4321"' })}
           </div>
         </fieldset>
         <fieldset class="bloco" id="bloco-endereco">
           <legend>Endereço de entrega</legend>
           <div class="linha-campos linha-campos--cep">
-            ${campo('cep', 'CEP', { auto: 'postal-code', modo: 'numeric', extra: 'placeholder="00000-000"' })}
+            ${campo('cep', 'CEP', { opcional: true, auto: 'postal-code', modo: 'numeric', extra: 'placeholder="00000-000"' })}
             ${campo('cidade', 'Cidade', { auto: 'address-level2', max: 60 })}
           </div>
           ${campo('endereco', 'Rua ou avenida', { auto: 'address-line1', max: 100 })}
@@ -250,8 +250,8 @@ export function paginaFinalizar(main) {
     nome: (v) => (v.trim().split(/\s+/).filter((p) => p.length >= 2).length >= 2 ? '' : 'Digite nome e sobrenome.'),
     // opcional (LGPD: só pede o que usa); se preenchido, vai na mensagem do pedido
     email: (v) => (!v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Digite um e-mail válido, como nome@email.com, ou deixe em branco.'),
-    telefone: (v) => (telefoneValido(v) ? '' : 'Digite um telefone com DDD, como (11) 98765-4321.'),
-    cep: (v) => (retirando() || digitos(v).length === 8 ? '' : 'O CEP tem 8 números.'),
+    telefone: (v) => (telefoneValido(v) ? '' : 'Digite um telefone com DDD, como (33) 98765-4321.'),
+    cep: (v) => (retirando() || [0, 8].includes(digitos(v).length) ? '' : 'O CEP tem 8 números (ou deixe em branco).'),
     cidade: (v) => (retirando() ? '' : v.trim().length < 2 ? 'Digite a cidade.' : cidadeAtendida(v) ? '' : 'Não entregamos nesta cidade pelo site. Fale com o estabelecimento.'),
     endereco: (v) => (retirando() || v.trim().length >= 3 ? '' : 'Digite a rua ou avenida.'),
     numero: (v) => (retirando() || v.trim() ? '' : 'Digite o número ou “s/n”.'),

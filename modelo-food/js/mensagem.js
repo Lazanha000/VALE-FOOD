@@ -40,7 +40,7 @@ export function textoPedido(p, { fuso = 'America/Sao_Paulo', marca = '', pix = f
     `*Cliente:* ${p.cliente.nome} - ${p.cliente.telefone}${p.cliente.email ? ` - ${p.cliente.email}` : ''}`,
     retirada
       ? `*Retirada no local*${p.recebimento.local ? `: ${p.recebimento.local}` : ''}${p.recebimento.tempo ? ` (previsão ${p.recebimento.tempo})` : ''}`
-      : `*Entrega${p.recebimento?.tempo ? ` (previsão ${p.recebimento.tempo})` : ''}:*\n${e.endereco}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ''}\n${e.bairro}, ${e.cidade} - CEP ${e.cep}\nMapa: ${linkMapa(e)}`,
+      : `*Entrega${p.recebimento?.tempo ? ` (previsão ${p.recebimento.tempo})` : ''}:*\n${e.endereco}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ''}\n${e.bairro}, ${e.cidade}${e.cep ? ` - CEP ${e.cep}` : ''}\nMapa: ${linkMapa(e)}`,
     p.obs ? `Obs. do pedido: ${umaLinha(p.obs)}` : '',
     fechamento ? '' : null,
     fechamento ? umaLinha(fechamento) : '',

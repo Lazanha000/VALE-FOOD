@@ -7,7 +7,7 @@
 // dividido por endereço (lazanha000.github.io), não por pasta: cada cliente apaga só
 // os caches com o próprio prefixo, nunca os de outro site publicado no mesmo endereço.
 const PREFIXO = 'modelo-';
-const VERSAO = PREFIXO + 'v3';
+const VERSAO = PREFIXO + 'v4';
 const ESPERA_MS = 4000;
 const BASE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
@@ -47,4 +47,13 @@ self.addEventListener('fetch', (e) => {
   // sem cópia guardada, continua esperando a rede
   const prazo = new Promise((ok) => setTimeout(() => doCache().then((r) => r && ok(r)), ESPERA_MS));
   e.respondWith(Promise.race([rede, prazo]).catch(() => doCache().then((r) => r || Response.error())));
+});
+
+// toque no aviso de "Pedido novo" (painel): traz a aba do painel para a frente
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((abas) => {
+    const painel = abas.find((a) => new URL(a.url).pathname.endsWith('/admin.html'));
+    return painel ? painel.focus() : self.clients.openWindow('admin.html');
+  }));
 });

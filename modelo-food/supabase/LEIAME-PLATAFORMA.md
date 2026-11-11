@@ -10,7 +10,7 @@ Essa chave pode ficar no site. A chave *secret* / *service_role* nunca vai para 
 2. Cole o conteúdo inteiro de `supabase/plataforma.sql` e clique em **Run**.
 3. O resultado deve ser "Success. No rows returned".
 
-Pode rodar de novo depois, para atualizar as regras: não apaga dados. **Rode de novo sempre que o arquivo mudar** (a última mudança foi em 11/11/2026).
+Pode rodar de novo depois, para atualizar as regras: não apaga dados. **Rode de novo sempre que o arquivo mudar** (a última mudança foi em 11/11/2026, à noite: CEP opcional e limpeza automática de dados antigos).
 **Não rode o `schema.sql` nem o `instalar.sql` neste projeto.** Eles são do site antigo, de uma loja só.
 
 ## 2. Virar administrador
@@ -26,7 +26,7 @@ select id, 'Seu nome' from auth.users where email = 'seu-email@exemplo.com';
 
 ## 3. Configurar o login (uma vez)
 
-Sem isso, o link de confirmação que chega por e-mail para o dono da loja leva para um endereço errado.
+Sem isso, os links que chegam por e-mail (confirmação da conta e "Esqueci minha senha") levam para um endereço errado.
 
 1. No Supabase, abra **Authentication > URL Configuration**.
 2. Em **Site URL**, coloque o endereço do painel:
@@ -34,6 +34,20 @@ Sem isso, o link de confirmação que chega por e-mail para o dono da loja leva 
 3. Em **Redirect URLs**, adicione o mesmo endereço e clique em **Save**.
 
 Quando o site mudar de endereço (domínio próprio ou Cloudflare Pages), troque nos dois lugares.
+
+## Antes de lançar: conferir
+
+No computador, dentro da pasta `modelo-food`, rode:
+
+```bash
+node conferir-modelo.mjs
+```
+
+Ele lista o que ainda falta preencher (CNPJ, razão social, e-mail, endereço, nome definitivo, lojas aprovadas). Quando disser "tudo certo para operar", a parte técnica está pronta.
+
+## Limpeza automática
+
+O `plataforma.sql` agenda (pg_cron) uma limpeza diária às 3h: pedidos encerrados há mais de 5 anos perdem nome, telefone, e-mail e endereço (valores ficam), como promete a política de privacidade. Para conferir que ficou agendada: **Integrations > Cron** no Supabase deve mostrar `limpar-dados-antigos` (o nome do menu pode mudar no Supabase).
 
 O e-mail grátis do Supabase manda **poucos e-mails por hora**. Para muitos cadastros no mesmo dia, configure um SMTP próprio em **Authentication > Emails > SMTP Settings**.
 

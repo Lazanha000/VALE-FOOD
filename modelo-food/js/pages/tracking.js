@@ -140,7 +140,7 @@ export function paginaPedido(main, estado) {
           </div>
           <div class="campo" data-campo="telefone">
             <label for="f-tel">Telefone usado no pedido</label>
-            <input id="f-tel" name="telefone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(11) 98765-4321" aria-describedby="e-telefone">
+            <input id="f-tel" name="telefone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(33) 98765-4321" aria-describedby="e-telefone">
             <p class="campo-erro" id="e-telefone"></p>
           </div>
         </div>

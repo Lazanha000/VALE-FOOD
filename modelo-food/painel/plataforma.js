@@ -28,6 +28,87 @@ function ocupar(form, sim) {
   b.classList.toggle('is-carregando', sim);
 }
 
+const senhaFraca = (s) => s.length < 8 || !/[a-z]/i.test(s) || !/\d/.test(s);
+const SENHA_REGRA = 'A senha precisa de 8 ou mais caracteres, com letras e números.';
+
+// ---------- esqueci minha senha ----------
+export function telaEsqueciSenha(main, { cliente, aoVoltar }) {
+  main.innerHTML = `<section class="pn-cartao pn-login">
+    <h1>Esqueci minha senha</h1>
+    <p class="pn-dica">Digite o e-mail da sua conta. Mandamos um link para você criar uma senha nova.</p>
+    <form id="pn-form-recuperar" novalidate>
+      <div class="campo"><label for="pr-email">E-mail</label><input id="pr-email" type="email" autocomplete="username" maxlength="120" inputmode="email" required></div>
+      <p class="aviso aviso--erro" data-erro role="alert" hidden></p>
+      <button class="btn btn-primario btn-largo" type="submit"><span class="btn-txt">Mandar o link</span></button>
+    </form>
+    <p class="pn-dica"><button type="button" class="link" data-voltar>Voltar para o login</button></p>
+  </section>`;
+  $('[data-voltar]').addEventListener('click', () => aoVoltar());
+  const form = $('#pn-form-recuperar');
+  const erro = erroDo(form);
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const email = $('#pr-email').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return erro.mostrar('Digite um e-mail válido.');
+    erro.limpar();
+    ocupar(form, true);
+    try {
+      await cliente.recuperarSenha(email, location.origin + location.pathname);
+      // mesma resposta exista ou não a conta (não revela quem tem cadastro)
+      main.innerHTML = `<section class="pn-cartao pn-login"><h1>Veja o seu e-mail</h1>
+        <p>Se existir uma conta com <b>${esc(email)}</b>, chega um link em alguns minutos. Abra o link para criar a senha nova.</p>
+        <p class="pn-dica">Não chegou? Veja a caixa de spam.</p>
+        <button class="btn btn-primario btn-largo" type="button" data-voltar>Voltar para o login</button></section>`;
+      $('[data-voltar]').addEventListener('click', () => aoVoltar());
+    } catch (e) {
+      ocupar(form, false);
+      erro.mostrar(e.message || 'Não deu para mandar o link agora.');
+    }
+  });
+  $('#pr-email').focus();
+}
+
+// link do e-mail de "Esqueci minha senha" (#access_token=...&type=recovery): devolve os tokens e limpa o endereço
+export function voltouDaRecuperacao() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.get('type') !== 'recovery' || !p.get('access_token')) return null;
+  history.replaceState(null, '', location.pathname + location.search);
+  return { access_token: p.get('access_token'), refresh_token: p.get('refresh_token'), expires_in: p.get('expires_in') };
+}
+
+export function telaNovaSenha(main, { cliente, link, aoEntrar, aoVoltar }) {
+  main.innerHTML = `<section class="pn-cartao pn-login">
+    <h1>Criar senha nova</h1>
+    <form id="pn-form-nova" novalidate>
+      <div class="campo"><label for="pn-nova">Senha nova</label><input id="pn-nova" type="password" autocomplete="new-password" maxlength="120" required>
+        <p class="campo-dica">8 ou mais caracteres, com letras e números.</p></div>
+      <div class="campo"><label for="pn-nova2">Repita a senha</label><input id="pn-nova2" type="password" autocomplete="new-password" maxlength="120" required></div>
+      <p class="aviso aviso--erro" data-erro role="alert" hidden></p>
+      <button class="btn btn-primario btn-largo" type="submit"><span class="btn-txt">Salvar e entrar</span></button>
+    </form>
+    <p class="pn-dica"><button type="button" class="link" data-voltar>Voltar para o login</button></p>
+  </section>`;
+  $('[data-voltar]').addEventListener('click', () => aoVoltar());
+  const form = $('#pn-form-nova');
+  const erro = erroDo(form);
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const senha = $('#pn-nova').value;
+    if (senhaFraca(senha)) return erro.mostrar(SENHA_REGRA);
+    if (senha !== $('#pn-nova2').value) return erro.mostrar('As duas senhas não são iguais.');
+    erro.limpar();
+    ocupar(form, true);
+    try {
+      await cliente.novaSenha(link, senha);
+      await aoEntrar();
+    } catch (e) {
+      ocupar(form, false);
+      erro.mostrar(e.message || 'Não deu para trocar a senha agora.');
+    }
+  });
+  $('#pn-nova').focus();
+}
+
 // ---------- criar conta ----------
 export function telaCriarConta(main, { cliente, aoEntrar, aoVoltar }) {
   main.innerHTML = `<section class="pn-cartao pn-login">
@@ -51,7 +132,7 @@ export function telaCriarConta(main, { cliente, aoEntrar, aoVoltar }) {
     const email = $('#pc-email').value.trim();
     const senha = $('#pc-senha').value;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return erro.mostrar('Digite um e-mail válido.');
-    if (senha.length < 8 || !/[a-z]/i.test(senha) || !/\d/.test(senha)) return erro.mostrar('A senha precisa de 8 ou mais caracteres, com letras e números.');
+    if (senhaFraca(senha)) return erro.mostrar(SENHA_REGRA);
     if (senha !== $('#pc-senha2').value) return erro.mostrar('As duas senhas não são iguais.');
     erro.limpar();
     ocupar(form, true);
@@ -76,7 +157,7 @@ export function voltouDaConfirmacao() {
   if (!/access_token=|type=signup|error_description=/.test(location.hash)) return '';
   const erro = /error_description=([^&]+)/.exec(location.hash);
   history.replaceState(null, '', location.pathname + location.search);
-  return erro ? 'O link de confirmação expirou ou já foi usado. Entre com sua senha ou crie a conta de novo.' : 'E-mail confirmado. Entre com a sua senha.';
+  return erro ? 'O link do e-mail expirou ou já foi usado. Entre com sua senha, ou peça outro link em “Esqueci minha senha”.' : 'E-mail confirmado. Entre com a sua senha.';
 }
 
 // ---------- cadastro do estabelecimento ----------
