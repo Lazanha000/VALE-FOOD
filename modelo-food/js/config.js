@@ -157,7 +157,14 @@ export const CONFIG = {
 
   // Modo demonstração: pedidos não são enviados a nenhum restaurante.
   // true ignora o Supabase acima. Cliente real = false.
-  modoDemonstracao: false,
+  // Cliente real = false. O link com ?demo (ex.: .../VALE-FOOD/?demo) liga a demonstração
+  // só naquela aba (sessionStorage); o site normal continua igual.
+  modoDemonstracao: (() => {
+    try {
+      if (new URLSearchParams(location.search).has('demo')) sessionStorage.setItem('modelo:demo', '1');
+      return sessionStorage.getItem('modelo:demo') === '1';
+    } catch { return false; }
+  })(),
 
 };
 
