@@ -17,7 +17,7 @@ Esta versão é uma **versão de análise**: dados fictícios, sem banco, nada �
 | Comanda, mensagem de WhatsApp, política de privacidade (modelo) | `js/comanda.js`, `js/mensagem.js`, `js/whatsapp.js`, `js/pages/privacy.js` |
 | Visual: fontes, cores, tema claro/escuro, acessibilidade | `css/styles.css`, `assets/fonts` |
 | Fotos reais dos lanches (usadas na Lanchonete do Zé e nas outras lanchonetes) | `assets/produtos`, `assets/cena` |
-| Abertura animada do lanche | `js/scene.js`, `js/box.js`, `js/art.js` (só na Lanchonete do Zé) |
+| Abertura animada do lanche | `js/scene.js`, `js/box.js` |
 | Navegação por `#página` | `js/router.js` |
 
 ## 2. Reaproveitado com adaptação

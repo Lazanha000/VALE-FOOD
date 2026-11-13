@@ -50,7 +50,9 @@ export function paginaTermos(main) {
     ['reembolso', 'Cancelamento e reembolso', 'Como cancelar um pedido e quando há devolução.'],
     ['cookies', 'Armazenamento no aparelho (cookies)', 'O que o site guarda no seu navegador.'],
     ['adesao', 'Termo de adesão do estabelecimento', 'Regras para lojas que vendem pela plataforma.']];
-  pagina(main, 'Documentos', 'Termos e políticas', () => `<ul class="lista-docs">${docs.map(([r, t, d]) => `<li><a href="#${r}"><strong>${t}</strong></a><br><span class="campo-dica">${d}</span></li>`).join('')}</ul>`);
+  pagina(main, 'Documentos', 'Termos e políticas', () => `<ul class="lista-docs">${docs.map(([r, t, d]) => `<li><a href="#${r}"><strong>${t}</strong></a><br><span class="campo-dica">${d}</span></li>`).join('')}</ul>
+    <h2>Créditos das imagens</h2>
+    <p>Fotos de pizza no cardápio de exemplo: imagem de banco de imagens (iStock, crédito Wirestock) e imagem ilustrativa. Todos os direitos pertencem aos respectivos autores. As imagens são exibidas apenas como exemplo, na fase de testes.</p>`);
   return null;
 }
 

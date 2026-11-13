@@ -1,7 +1,6 @@
 // Peças de interface compartilhadas: aviso rápido (toast), imagem
 // de produto com reserva, contador do carrinho.
 
-import { artFor } from './art.js';
 import { esc } from './utils.js';
 
 let timerToast;
@@ -21,16 +20,14 @@ export function avisar(texto, tipo = 'ok', acao = null) {
   timerToast = setTimeout(() => t.classList.remove('is-on'), acao ? 5000 : 2600);
 }
 
-// <img> do produto: foto real se houver; se faltar ou falhar, ilustração
+// <img> do produto: foto real; sem foto, um quadro neutro "Foto em breve"
+const SEM_FOTO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#e6e3dd"/><text x="200" y="158" font-family="sans-serif" font-size="22" fill="#8a857c" text-anchor="middle">Foto em breve</text></svg>');
 export function imgProduto(prod, classe = '', tamanho = 'cartao') {
-  const arte = artFor(prod);
-  const src = prod.imagem || arte;
   const lazy = tamanho === 'cartao' ? 'loading="lazy" decoding="async"' : 'decoding="async"';
-  const foto = prod.imagem ? ' is-foto' : '';
-  // foto real: se falhar, tenta de novo (nunca troca pelo desenho). Sem foto: desenho.
+  // foto real: se falhar, tenta de novo (nunca troca por outra imagem)
   return prod.imagem
-    ? `<img class="${classe}${foto}" src="${esc(src)}" alt="${esc(prod.nome)}" ${lazy} data-foto="${esc(src)}">`
-    : `<img class="${classe}" src="${esc(src)}" alt="${esc(prod.nome)}" ${lazy}>`;
+    ? `<img class="${classe} is-foto" src="${esc(prod.imagem)}" alt="${esc(prod.nome)}" ${lazy} data-foto="${esc(prod.imagem)}">`
+    : `<img class="${classe}" src="${SEM_FOTO}" alt="${esc(prod.nome)}" ${lazy}>`;
 }
 
 // Foto que falhou ao carregar (internet instável, servidor lento): tenta de novo

@@ -7,7 +7,7 @@
 // dividido por endereço (lazanha000.github.io), não por pasta: cada cliente apaga só
 // os caches com o próprio prefixo, nunca os de outro site publicado no mesmo endereço.
 const PREFIXO = 'modelo-';
-const VERSAO = PREFIXO + 'v5';
+const VERSAO = PREFIXO + 'v6';
 const ESPERA_MS = 4000;
 const BASE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
@@ -15,7 +15,7 @@ const BASE = [
   'assets/fonts/archivo-latin-wght-normal.woff2', 'assets/fonts/big-shoulders-display-latin-700-normal.woff2',
   'assets/fonts/big-shoulders-display-latin-800-normal.woff2', 'assets/fonts/big-shoulders-display-latin-900-normal.woff2',
   'assets/fonts/ibm-plex-mono-latin-400-normal.woff2', 'assets/fonts/ibm-plex-mono-latin-600-normal.woff2',
-  'js/main.js', 'js/ajustar.js', 'js/ajustes.js', 'js/art.js', 'js/antifraude.js', 'js/comanda.js', 'js/config.js',
+  'js/main.js', 'js/ajustar.js', 'js/ajustes.js', 'js/antifraude.js', 'js/comanda.js', 'js/config.js',
   'js/delivery.js', 'js/horario.js', 'js/mensagem.js', 'js/pix.js', 'js/products.js',
   'js/router.js', 'js/store.js', 'js/ui.js', 'js/utils.js', 'js/whatsapp.js',
   'js/pages/cart.js', 'js/pages/checkout.js', 'js/pages/menu.js',

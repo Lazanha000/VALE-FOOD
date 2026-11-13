@@ -45,8 +45,8 @@ const TAMANHO_PIZZA = { id: 'tamanho', nome: 'Tamanho', tipo: 'unica', obrigator
   { id: 'g', nome: 'Grande · 8 fatias', preco: 1200 },
 ] };
 const PIZZAS = [
-  prato('pz-mussarela', 'pizzas', 'Pizza de mussarela', 'Molho de tomate, mussarela e orégano.', 3800, 'combo', { opcoes: [TAMANHO_PIZZA] }),
-  prato('pz-calabresa', 'pizzas', 'Pizza de calabresa', 'Calabresa fatiada, cebola e mussarela.', 4200, 'combo', { opcoes: [TAMANHO_PIZZA], removiveis: ['Cebola'], destaque: true }),
+  prato('pz-mussarela', 'pizzas', 'Pizza de mussarela', 'Molho de tomate, mussarela e orégano.', 3800, 'combo', { opcoes: [TAMANHO_PIZZA], imagem: 'assets/produtos/pizza-mussarela.webp' }),
+  prato('pz-calabresa', 'pizzas', 'Pizza de calabresa', 'Calabresa fatiada, cebola e mussarela.', 4200, 'combo', { opcoes: [TAMANHO_PIZZA], removiveis: ['Cebola'], destaque: true, imagem: 'assets/produtos/pizza-calabresa.webp' }),
   prato('pz-frango', 'pizzas', 'Pizza de frango com catupiry', 'Frango desfiado e catupiry.', 4600, 'combo', { opcoes: [TAMANHO_PIZZA] }),
   ...dosBase(['coca-2l', 'guarana-2l']),
   prato('pz-brownie', 'sobremesas', 'Brownie com sorvete', 'Brownie quente com uma bola de sorvete.', 1800, 'brownie'),
