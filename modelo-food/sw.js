@@ -7,7 +7,7 @@
 // dividido por endereço (lazanha000.github.io), não por pasta: cada cliente apaga só
 // os caches com o próprio prefixo, nunca os de outro site publicado no mesmo endereço.
 const PREFIXO = 'modelo-';
-const VERSAO = PREFIXO + 'v6';
+const VERSAO = PREFIXO + 'v7';
 const ESPERA_MS = 4000;
 const BASE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',

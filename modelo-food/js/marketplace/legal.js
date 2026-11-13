@@ -52,7 +52,7 @@ export function paginaTermos(main) {
     ['adesao', 'Termo de adesão do estabelecimento', 'Regras para lojas que vendem pela plataforma.']];
   pagina(main, 'Documentos', 'Termos e políticas', () => `<ul class="lista-docs">${docs.map(([r, t, d]) => `<li><a href="#${r}"><strong>${t}</strong></a><br><span class="campo-dica">${d}</span></li>`).join('')}</ul>
     <h2>Créditos das imagens</h2>
-    <p>Fotos de pizza no cardápio de exemplo: imagem de banco de imagens (iStock, crédito Wirestock) e imagem ilustrativa. Todos os direitos pertencem aos respectivos autores. As imagens são exibidas apenas como exemplo, na fase de testes.</p>`);
+    <p>Fotos do cardápio de exemplo (pizzas, suco, brownie e cookie): imagens de banco de imagens (iStock, créditos Wirestock e MariuszBlach) e de outras fontes. Todos os direitos pertencem aos respectivos autores. As imagens são exibidas apenas como exemplo, na fase de testes.</p>`);
   return null;
 }
 

@@ -47,17 +47,17 @@ const TAMANHO_PIZZA = { id: 'tamanho', nome: 'Tamanho', tipo: 'unica', obrigator
 const PIZZAS = [
   prato('pz-mussarela', 'pizzas', 'Pizza de mussarela', 'Molho de tomate, mussarela e orégano.', 3800, 'combo', { opcoes: [TAMANHO_PIZZA], imagem: 'assets/produtos/pizza-mussarela.webp' }),
   prato('pz-calabresa', 'pizzas', 'Pizza de calabresa', 'Calabresa fatiada, cebola e mussarela.', 4200, 'combo', { opcoes: [TAMANHO_PIZZA], removiveis: ['Cebola'], destaque: true, imagem: 'assets/produtos/pizza-calabresa.webp' }),
-  prato('pz-frango', 'pizzas', 'Pizza de frango com catupiry', 'Frango desfiado e catupiry.', 4600, 'combo', { opcoes: [TAMANHO_PIZZA] }),
+  prato('pz-frango', 'pizzas', 'Pizza de frango com catupiry', 'Frango desfiado e catupiry.', 4600, 'combo', { opcoes: [TAMANHO_PIZZA], imagem: 'assets/produtos/pizza-frango.webp' }),
   ...dosBase(['coca-2l', 'guarana-2l']),
-  prato('pz-brownie', 'sobremesas', 'Brownie com sorvete', 'Brownie quente com uma bola de sorvete.', 1800, 'brownie'),
+  prato('pz-brownie', 'sobremesas', 'Brownie com sorvete', 'Brownie quente com uma bola de sorvete.', 1800, 'brownie', { imagem: 'assets/produtos/brownie.webp' }),
 ];
 const PRATOS = [
   prato('pr-frango', 'pratos', 'Prato executivo de frango', 'Arroz, feijão, frango grelhado, salada e farofa.', 2400, 'combo', { destaque: true }),
   prato('pr-carne', 'pratos', 'Prato executivo de carne', 'Arroz, feijão, bife acebolado, salada e farofa.', 2700, 'combo'),
   prato('pr-tropeiro', 'pratos', 'Feijão tropeiro', 'Feijão tropeiro com linguiça, couve e ovo.', 2200, 'combo'),
-  prato('pr-suco', 'bebidas', 'Suco natural', 'Laranja ou maracujá, 400 ml.', 700, 'copo'),
+  prato('pr-suco', 'bebidas', 'Suco natural', 'Laranja ou maracujá, 400 ml.', 700, 'copo', { imagem: 'assets/produtos/suco.webp' }),
   ...dosBase(['coca-350']),
-  prato('pr-cookie', 'sobremesas', 'Cookie', 'Cookie com gotas de chocolate.', 600, 'cookie'),
+  prato('pr-cookie', 'sobremesas', 'Cookie', 'Cookie com gotas de chocolate.', 600, 'cookie', { imagem: 'assets/produtos/cookie.webp' }),
 ];
 
 const CATS_PIZZA = [{ id: 'pizzas', nome: 'Pizzas' }, { id: 'bebidas', nome: 'Bebidas' }, { id: 'sobremesas', nome: 'Sobremesas' }];
